@@ -21,12 +21,7 @@ void Client::setIndex(int index) { index = index; }
 
 int Client::getIndex() { return index; }
 
-void Client::setAddr(struct sockaddr_in &socketAddr) {
-    addr = socketAddr;
-    // addr.sin_family = socketAddr.sin_family;
-    // addr.sin_port = socketAddr.sin_port;
-    // addr.sin_addr.s_addr = socketAddr.sin_addr.s_addr;
-}
+void Client::setAddr(struct sockaddr_in &socketAddr) { addr = socketAddr; }
 
 sockaddr_in &Client::getAddr() { return addr; }
 
@@ -41,3 +36,7 @@ std::string Client::getRequestMsg() { return request; }
 void Client::setHeaders(std::map<std::string, std::string> header) { headers = header; }
 
 std::map<std::string, std::string> &Client::getHeaders() { return headers; }
+
+void Client::setHeaderValue(std::string &key, std::string &value) { headers[key] = value; }
+
+std::string Client::getHeaderValue(std::string &key) { return headers[key]; }

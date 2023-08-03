@@ -46,23 +46,32 @@ void Server::parseRequest(int fd, char *buff) {
             headers["Method"] = "POST";
         else if (line.find("DELETE") != std::string::npos)
             headers["Method"] = "DELETE";
+        else exitWithError("Method not supported"); // TODO: manage error message. 400 Bad Request
 
         size_t pos = line.find_first_of(" ");
         size_t pos2 = line.find_last_of(" ");
         if (pos && pos2) {
             headers["URI"] = line.substr(pos + 1, pos2 - pos - 1);
-            headers["HTTP"] = line.substr(pos2 + 1, line.size() - 2);
+            headers["HTTP"] = line.substr(pos2 + 1, line.size() - pos2 - 2);
         }
+        else exitWithError("Bad Request"); // TODO: manage error message. 400 Bad Request
     }
+    else exitWithError("Bad Request"); // TODO: manage error message. 400 Bad Request
 
     while (std::getline(iss, line)) {
-        if (line.compare("\r\n\r\n") == 0)
+        if (line.compare("\r") == 0)
             break;
         if (line.find(":") != std::string::npos)
-            headers[line.substr(0, line.find(":"))] = line.substr(line.find(":") + 2, line.size() - 2);
+            headers[line.substr(0, line.find(":"))] = line.substr(line.find(":") + 2, line.size() - line.find(":") - 3);
     }
-    
-    // TODO: check body and chunked
+
+    // TODO: check body for chunked and multipart content type
+    while (std::getline(iss, line))
+        std::cout << line << std::endl;
+
+    // for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
+    //     std::cout << it->first << ": " << it->second << "." << std::endl;log("\n");
+
     clientSockets[findClientIndex(fd)].setHeaders(headers);
 }
 
@@ -103,6 +112,7 @@ void Server::sendResponse(int &clientFd) {
 }
 
 void Server::handleRequest(int &clientFd) {
+    // Read or save request to a file
     log("------ Handling existing clients ------\n");
     std::cout << "Client " << clientFd << std::endl << std::endl;
     char buff[BUFFER_SIZE] = {0};
@@ -116,19 +126,20 @@ void Server::handleRequest(int &clientFd) {
         int clientIndex = findClientIndex(clientFd);
         if (clientIndex == -1)
             exitWithError("Couldn't find client socket index");
+
         clientSockets.erase(clientSockets.begin() + clientIndex);
         FD_CLR(clientFd, &readSetTmp);
         close(clientFd);
-        index--;
     } else {
         buff[bytesRead] = '\0';
         FD_SET(clientFd, &writeSetTmp);
         FD_CLR(clientFd, &readSetTmp);
 
         log("------ Received Request from client ------\n\n");
+
         parseRequest(clientFd, buff);
         clientSockets[findClientIndex(clientFd)].setRequestMsg(buff);
-        std::cout << clientSockets[findClientIndex(clientFd)].getRequestMsg() << std::endl;
+        // std::cout << clientSockets[findClientIndex(clientFd)].getRequestMsg() << std::endl;
     }
 }
 
@@ -222,17 +233,6 @@ void Server::startServer() {
 
         readSet = readSetTmp;
         writeSet = writeSetTmp;
-
-        // Reinitialize readFd
-        // FD_ZERO(&readSetTmp);
-        // FD_ZERO(&writeSetTmp);
-        // FD_SET(serverSocket, &readSet);
-        // maxFd = serverSocket;
-        // for (int i = 0; i < clientSockets.size(); i++) {
-        //     FD_SET(clientSockets[i], &readSet);
-        //     FD_SET(clientSockets[i], &writeSet);
-        //     maxFd = std::max(maxFd, clientSockets[i]);
-        // }
     }
     close(serverSocket);
 }

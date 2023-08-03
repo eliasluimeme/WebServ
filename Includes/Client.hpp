@@ -28,6 +28,8 @@ class Client {
         std::string getRequestMsg();
         void setHeaders(std::map<std::string, std::string>);
         std::map<std::string, std::string> &getHeaders();
+        void setHeaderValue(std::string &, std::string &);
+        std::string getHeaderValue(std::string &);
 
     private:
         int index;
