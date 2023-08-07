@@ -4,6 +4,7 @@
 
 #define BUFFER_SIZE 10000
 #define MAX_CLIENTS 10
+#define TIMEOUT 5.0
 
 class ConfData;
 class Client;
@@ -33,20 +34,18 @@ class Server {
         // void sendBack();
 
     private:
-    fd_set readSet, writeSet, readSetTmp, writeSetTmp;
-
-    int index;
-
-    std::string ipAdress;
-    int port;
-    int maxFd;
-    int serverSocket;
-    int clientSocket;
-    long incommingMessage;
-    std::vector<Client> clientSockets;
-    struct sockaddr_in serverAddr, clientAddr;
-    std::string serverMsg;
-    std::string responseMsg;
+        fd_set readSet, writeSet, readSetTmp, writeSetTmp;
+        struct timeval timeout;
+        std::string ipAdress;
+        int port;
+        int maxFd;
+        int serverSocket;
+        int clientSocket;
+        struct sockaddr_in serverAddr, clientAddr;
+        std::vector<Client> clientSockets;
+        std::string method, uri, http;
+        std::string serverMsg;
+        std::string responseMsg;
 };
 
 // TO DO

@@ -9,12 +9,13 @@ FLAGS = -std=c++98 -fsanitize=address -g3 #-Wall -Wextra -Werror
 all: $(NAME)
 
 $(NAME): $(SRC)
-	c++ $(FLAGS) $(SRC) -o $(NAME)
+	@c++ $(FLAGS) $(SRC) -o $(NAME)
 
 clean:
-	rm -rf $(OBJ)
+	@rm -rf $(OBJ)
 				
 fclean:	clean
-	rm -rf $(NAME)
+	@rm -rf $(NAME)
+	@rm -rf reqBody
 
 re:	fclean all

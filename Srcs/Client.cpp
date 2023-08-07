@@ -1,13 +1,11 @@
 #include "../Includes/Includes.hpp"
 
 Client::Client() {
-    index = -1;
     clientFd = -1;
     memset(&addr, 0, sizeof(addr));
 }
 
 Client::Client(int fd): clientFd(fd) {
-    index = -1;
     memset(&addr, 0, sizeof(addr));
 }
 
@@ -16,10 +14,6 @@ Client::~Client() {}
 void Client::setFd(int fd) { clientFd = fd; }
 
 int Client::getFd() { return clientFd; }
-
-void Client::setIndex(int index) { index = index; }
-
-int Client::getIndex() { return index; }
 
 void Client::setAddr(struct sockaddr_in &socketAddr) { addr = socketAddr; }
 
@@ -33,10 +27,34 @@ void Client::setRequestMsg(std::string msg) { request = msg; }
 
 std::string Client::getRequestMsg() { return request; }
 
-void Client::setHeaders(std::map<std::string, std::string> header) { headers = header; }
+void Client::setHeaders(std::map<std::string, std::string> &header) { headers = header; }
 
 std::map<std::string, std::string> &Client::getHeaders() { return headers; }
 
 void Client::setHeaderValue(std::string &key, std::string &value) { headers[key] = value; }
 
 std::string Client::getHeaderValue(std::string &key) { return headers[key]; }
+
+void Client::setMethod(std::string &meth) { method = meth; }
+
+std::string Client::getMethod() { return method; }
+
+void Client::setURI(std::string &URI) { uri = URI; }
+
+std::string Client::getURI() { return uri; }
+
+void Client::setHTTP(std::string &HTTP) { http = HTTP; }
+
+std::string Client::getHTTP() { return http; }
+
+void Client::setEncoding(std::string &enco) { encoding = enco; }
+
+std::string Client::getEncoding() { return encoding; }
+
+void Client::setDelimiter(std::string &deli) { delimiter = deli; }
+
+std::string Client::getDelimiter() { return delimiter; }
+
+void Client::setReqFile(std::string file) { reqFile = file; }
+
+std::string &Client::getReqFile() { return reqFile; }
