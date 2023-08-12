@@ -14,12 +14,12 @@ class Parser {
     bool checkExtension(std::string filename);
 
     private:
-    std::string             configFile;
+    std::string             fileName;
     std::string             port;
 	std::string				host;
-	std::string             server_name;
+	std::string             serverName;
 	std::string				upload;
 	ssize_t					body_size;
-	// std::vector<>           locations;
+	std::vector<std::string>            locations;
 	std::map<std::string, std::string>	errorPages; 
 };

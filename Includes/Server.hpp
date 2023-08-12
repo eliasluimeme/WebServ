@@ -13,10 +13,10 @@ class Server {
     public:
         Server();
         ~Server();
-        void startServer();
-        void initServer();
+        void startServer(Data &);
+        bool initServer();
+        void setConfData(Data &);
         void closeServer();
-        void startListning();
         void acceptConnection();
         void handleRequest(int &);
         void buildResponse();
@@ -30,6 +30,7 @@ class Server {
         int  findClientIndex(int &);
 
     private:
+        Data data;
         fd_set readSet, writeSet, readSetTmp, writeSetTmp;
         struct timeval timeout;
         std::string ipAdress;
@@ -45,6 +46,4 @@ class Server {
 };
 
 // TO DO
-// Parse request
-// Manage responce
 // Multi servers

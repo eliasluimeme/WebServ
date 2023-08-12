@@ -7,7 +7,7 @@ int main(int ac, char **av) {
         Data   data;
 
         if (parser.checkConfigFile(data))
-            server.startServer();
+            server.startServer(data);
     }
     else std::cerr << "Error: Invalid input. Enter a valid config file." << std::endl;
     return 0;

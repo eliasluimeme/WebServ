@@ -1,11 +1,11 @@
 #include "../Includes/Includes.hpp"
 
-Parser::Parser(const char *filename) : configFile(filename) {}
+Parser::Parser(const char *filename) : fileName(filename) {}
 
 Parser::~Parser() {}
 
 bool Parser::checkConfigFile(Data &data) {
-    if (checkExtension(configFile))
+    if (checkExtension(fileName))
         parseFile();
     
     // blah blah

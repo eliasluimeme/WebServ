@@ -32,6 +32,10 @@ void Server::cleanup() {
     
 }
 
+void Server::setConfData(Data &confData) {
+    data = confData;
+}
+
 void Server::setNonBlocking(int &socket) {
     if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
         exitWithError("Setting nonblocking on server socket failed");
@@ -220,21 +224,7 @@ void Server::acceptConnection() {
     maxFd = std::max(maxFd, clientSocket);
 }
 
-void Server::startListning() {
-    FD_ZERO(&readSet);
-    FD_ZERO(&writeSet);
-    if (listen(serverSocket, MAX_CLIENTS) < 0)
-        exitWithError("Couldn't listen to socket");
-
-    std::ostringstream ss;
-    ss << "\n*** Listening on ADDRESS: " << inet_ntoa(serverAddr.sin_addr) << " PORT: " << ntohs(serverAddr.sin_port) << " ***\n\n";
-    log(ss.str());
-
-    FD_SET(serverSocket, &readSet);
-    maxFd = serverSocket;
-}
-
-void Server::initServer() {
+bool Server::initServer() {
     int i = 1;
     ipAdress = "127.0.0.1";
     port = 8080;
@@ -254,33 +244,43 @@ void Server::initServer() {
     if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
         exitWithError("Couldn't bind socket");
 
+    FD_ZERO(&readSet);
+    FD_ZERO(&writeSet);
     setNonBlocking(serverSocket);
-    startListning();
+
+    if (listen(serverSocket, MAX_CLIENTS) < 0)
+        exitWithError("Couldn't listen to socket");
+
+    std::ostringstream ss;
+    ss << "\n*** Listening on ADDRESS: " << inet_ntoa(serverAddr.sin_addr) << " PORT: " << ntohs(serverAddr.sin_port) << " ***\n\n";
+    log(ss.str());
+
+    FD_SET(serverSocket, &readSet);
+    maxFd = serverSocket;
+    return true;
 }
 
-void Server::startServer() {
-    initServer();
-
-    FD_ZERO(&readSetTmp);
-    FD_ZERO(&writeSetTmp);
+void Server::startServer(Data &confData) {
+    if (initServer())
+        setConfData(confData);
 
     timeout.tv_sec = 0;
     timeout.tv_usec = 200000;
-    while (true) {
-        log("====== Waiting for a new connection ======\n\n");
 
+    FD_ZERO(&readSetTmp);
+    FD_ZERO(&writeSetTmp);
+    while (true) {
         int maxFdTmp = maxFd;
         readSetTmp = readSet;
         writeSetTmp = writeSet;
 
+        log("====== Waiting for a new connection ======\n\n");
         if (select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL) < 0)
             exitWithError("Select failed!");
 
-        // Check the server socket for new connection
         if (FD_ISSET(serverSocket, &readSet)) 
             acceptConnection();
 
-        // Check each client socket for activity
         for (int index = 0; index < clientSockets.size(); index++) {
             int clientFd = clientSockets[index].getFd();
             if (FD_ISSET(clientFd, &readSet))

@@ -2,6 +2,10 @@
 
 #include "../Includes/Includes.hpp"
 
-class Data {
-    
+struct Data {
+    std::string             port;
+	std::string				host;
+	std::string             serverName;
+	std::string				upload;
+    std::vector<std::string>            locations;
 };
