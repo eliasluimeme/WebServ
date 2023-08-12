@@ -1,6 +1,6 @@
 #include "../Includes/Includes.hpp"
 
-Server::Server() {}
+Server::Server(): header(false), received(false) {}
 
 Server::~Server() {
     closeServer();
@@ -26,7 +26,10 @@ void Server::closeServer() {
 }
 
 void Server::cleanup() {
-
+    log("cleaning...");
+    if (file.is_open())
+        file.close();
+    
 }
 
 void Server::setNonBlocking(int &socket) {
@@ -34,65 +37,98 @@ void Server::setNonBlocking(int &socket) {
         exitWithError("Setting nonblocking on server socket failed");
 }
 
-void Server::parseRequest(int fd, char *buff) {
-    std::map<std::string, std::string> headers;
-    std::string encoding, delimiter;
-    std::istringstream iss(buff);
-    std::string key, value;
-    std::string line;
-
-    if (std::getline(iss, line)) {
-        std::istringstream iss(line);
-        iss >> method >> uri >> http;
-    } else exitWithError("Bad request"); // 400 Bad Request
-
-    while (std::getline(iss, line)) {
-        if (line.compare("\r") == 0)
-            break;
-        if (line.find(":") != std::string::npos) {
-            key = line.substr(0, line.find(":") + 1);
-            value = line.substr(line.find(":") + 2, line.size() - line.find(":") - 3);
-            if (!key.empty() && !value.empty())
-                headers[key] = value;
-        }
+int Server::findClientIndex(int &clientSock) {
+    int index = 0;
+    for (std::vector<Client>::iterator it = clientSockets.begin(); it != clientSockets.end(); it++) {
+        if (it->getFd() == clientSock)
+            return index;
+        index++;
     }
+    exitWithError("Client not found");
+    return -1;
+}
 
-    if (headers.find("Transfer-Encoding:") != headers.end()) { // recheck for chunk and recheck for encoding
+void Server::setEncoding(std::map<std::string, std::string> &headers, std::string &encoding, int index) {
+    if (headers.find("Transfer-Encoding:") != headers.end()) {
         if (headers["Transfer-Encoding:"] == "chunked")
             encoding = "chunked";
     }
-    else if (headers.find("Content-Type:") != headers.end()) {
+    else if (headers.find("Content-Type:") != headers.end() && headers["Content-Type:"].find("multipart/form-data;") != std::string::npos) {
         std::string val = headers["Content-Type:"];
-        if (val.find("multipart/form-data;") != std::string::npos) {
-            encoding = "multipart";
-            delimiter = val.substr(val.find("=") + 1, val.size() - val.find("="));
-        }
+        delimiter = val.substr(val.find("=") + 1, val.size() - val.find("="));
+        clientSockets[index].setDelimiter(delimiter);
+        encoding = "multipart";
     }
-    else if (headers.find("Transfer-Encoding:") == headers.end() && headers.find("Content-Length:") != headers.end())
+    else if (headers.find("Content-Length:") != headers.end())
         encoding = "length";
+    else if (method != "GET")
+        exitWithError("Bad request"); // 400 Bad Request
+    std::cout << "- Encoding: " << encoding << std::endl;
+}
 
-    std::fstream reqBody;
-    reqBody.open("reqBody", std::ios::in | std::ios::out | std::ios::trunc);
-    if (reqBody.is_open()) {
-        while (std::getline(iss, line))
-            reqBody << line << std::endl;
-    } else exitWithError("Can't open file");
+void Server::parseRequest(int fd, std::string request) {
+    std::map<std::string, std::string> headers;
+    std::string encoding, delimiter;
+    std::string key, value;
+    std::string line;
 
-    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
-        std::cout << it->first << " " << it->second << "." << std::endl;
-    if (!encoding.empty())
-        std::cout << "- Encoding: " << encoding << std::endl;
-    if (!delimiter.empty())
-        std::cout << "- Delimiter: " << delimiter << std::endl;
+    int index = findClientIndex(fd);
+    std::istringstream iss(request);
 
-    reqBody.close();
-    clientSockets[findClientIndex(fd)].setHeaders(headers);
-    clientSockets[findClientIndex(fd)].setMethod(method);
-    clientSockets[findClientIndex(fd)].setURI(uri);
-    clientSockets[findClientIndex(fd)].setHTTP(http);
-    clientSockets[findClientIndex(fd)].setEncoding(encoding);
-    clientSockets[findClientIndex(fd)].setDelimiter(delimiter);
-    clientSockets[findClientIndex(fd)].setReqFile("reqBody");
+    if (clientSockets[index].header == false) {
+        log("Parsing request");
+        if (std::getline(iss, line)) {
+            std::istringstream is(line);
+            is >> method >> uri >> http; // check query string
+            if (uri.find("?") != std::string::npos)
+                query = uri.substr(uri.find("?") + 1, uri.size() - uri.find("?"));
+        } else exitWithError("Bad request"); // 400 Bad Request
+        while (std::getline(iss, line)) {
+            if (line.compare("\r") == 0) {
+                clientSockets[index].header = true;
+                break;
+            }
+            if (line.find(":") != std::string::npos) {
+                key = line.substr(0, line.find(":") + 1);
+                value = line.substr(line.find(":") + 2, line.size() - line.find(":") - 3);
+                if (!key.empty() && !value.empty())
+                    headers[key] = value;
+                else exitWithError("Bad request"); // 400 Bad Request
+            }
+        }
+        setEncoding(headers, encoding, index);
+        if (headers.find("Content-Length:") != headers.end())
+            clientSockets[index].toRead = std::stoi(headers["Content-Length:"]);
+        else clientSockets[index].toRead = 0;
+        
+        clientSockets[index].setHeaders(headers);
+        clientSockets[index].setMethod(method);
+        clientSockets[index].setURI(uri);
+        clientSockets[index].setHTTP(http);
+        clientSockets[index].setEncoding(encoding);
+        clientSockets[index].setReqFile("reqBody");
+    }
+
+    if (std::string(fileName.str()).empty())
+        fileName << "request-" << std::to_string(fd);
+    file = std::fstream(fileName.str(), std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
+    if (!file.is_open())
+        exitWithError("Can't open request file");
+
+    int end = request.find("\r\n\r\n");
+    if (end != std::string::npos) {
+        end += 4;
+        request = request.erase(0, end);
+    }
+    file.write(request.c_str(), request.size());
+    clientSockets[index].readed += request.size();
+
+    std::cout << "to read: " << clientSockets[index].toRead << " readed: " << clientSockets[index].readed << std::endl;
+    if (clientSockets[index].readed >= clientSockets[index].toRead) {
+        log("------ Request body received ------\n");
+        clientSockets[index].received = true;
+    } else
+        log("------ Request body not received ------\n");
 }
 
 void Server::buildResponse() {
@@ -103,18 +139,15 @@ void Server::buildResponse() {
     responseMsg = ss.str();
 }
 
-int Server::findClientIndex(int &clientSock) {
-    int index = 0;
-    for (std::vector<Client>::iterator it = clientSockets.begin(); it != clientSockets.end(); it++) {
-        if (it->getFd() == clientSock)
-            return index;
-        index++;
-    }
-    return -1;
-}
-
 void Server::sendResponse(int &clientFd) {
+    int index = findClientIndex(clientFd);
     buildResponse();
+
+    // read request body from file
+    if (file.is_open()) {
+        log("reading from file....");
+        file.close();
+    } else exitWithError("Can't open file");
 
     size_t bytesSent;
     bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
@@ -123,14 +156,16 @@ void Server::sendResponse(int &clientFd) {
     else
         exitWithError("Error sending response to client");
     
-    cleanup(); // TODO: clean resources
-    int socketIndex = findClientIndex(clientFd);
-    if (socketIndex == -1)
-        exitWithError("Couldn't find client socket index");
-    clientSockets.erase(clientSockets.begin() + socketIndex);
+    // cleanup(); // TODO: clean resources
+    clientSockets[index].cleanup();
+    clientSockets.erase(clientSockets.begin() + index);
     FD_CLR(clientFd, &writeSetTmp);
-    // FD_SET(clientFd, &readSetTmp);
     close(clientFd);
+
+    // delete file after sending response
+    std::string s(fileName.str());
+    if (std::remove(s.c_str()))
+        exitWithError("Error removing file");
 }
 
 void Server::handleRequest(int &clientFd) {
@@ -138,30 +173,30 @@ void Server::handleRequest(int &clientFd) {
     std::cout << "Client " << clientFd << std::endl << std::endl;
     char buff[BUFFER_SIZE] = {0};
 
-    size_t bytesRead = recv(clientFd, buff, BUFFER_SIZE, 0);
+    std::string request;
+    int index = findClientIndex(clientFd);
+    size_t bytesRead = recv(clientFd, buff, BUFFER_SIZE, 0); // check body limit
+
     if (bytesRead <= 0) {
         if (bytesRead == 0)
             log("------ Connection closed -------\n\n");
         else exitWithError("Couldn't read from socket");
 
-        int clientIndex = findClientIndex(clientFd);
-        if (clientIndex == -1)
-            exitWithError("Couldn't find client socket index");
-
-        clientSockets.erase(clientSockets.begin() + clientIndex);
+        clientSockets.erase(clientSockets.begin() + index);
         FD_CLR(clientFd, &readSetTmp);
         close(clientFd);
-    } else if (bytesRead <= BUFFER_SIZE) {
+    } else {
         buff[bytesRead] = '\0';
-        FD_SET(clientFd, &writeSetTmp);
-        FD_CLR(clientFd, &readSetTmp);
+        request = std::string(buff, bytesRead);
+        parseRequest(clientFd, request);
 
-        log("------ Received Request from client ------\n\n");
-
-        parseRequest(clientFd, buff);
-        clientSockets[findClientIndex(clientFd)].setRequestMsg(buff);
-        std::cout << clientSockets[findClientIndex(clientFd)].getRequestMsg() << std::endl;
-    } else exitWithError("Request too big");
+        if (clientSockets[index].received == true) {
+            FD_CLR(clientFd, &readSetTmp);
+            FD_SET(clientFd, &writeSetTmp);
+            log("------ Received Request from client ------\n\n");
+        }
+    }
+    // else exitWithError("Request too big");
 }
 
 void Server::acceptConnection() {
@@ -219,11 +254,11 @@ void Server::initServer() {
     if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
         exitWithError("Couldn't bind socket");
 
-    setNonBlocking(serverSocket);startListning();
+    setNonBlocking(serverSocket);
+    startListning();
 }
 
 void Server::startServer() {
-
     initServer();
 
     FD_ZERO(&readSetTmp);
@@ -250,7 +285,7 @@ void Server::startServer() {
             int clientFd = clientSockets[index].getFd();
             if (FD_ISSET(clientFd, &readSet))
                 handleRequest(clientFd);
-            else if (FD_ISSET(clientFd, &writeSet))
+            if (FD_ISSET(clientFd, &writeSet))
                 sendResponse(clientFd);
         }
 

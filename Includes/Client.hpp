@@ -13,12 +13,12 @@ enum clientState {
 class Client {
     public:
         Client();
-        Client(int);
         ~Client();
 
         void setFd(int);
         int  getFd();
         void setAddr(struct sockaddr_in &);
+        void cleanup();
         sockaddr_in &getAddr();
         void setAddrLen(int);
         size_t getAddrLen();
@@ -40,12 +40,17 @@ class Client {
         std::string getDelimiter();
         void setReqFile(std::string);
         std::string &getReqFile();
+        void setBody(std::string);
+        std::string &getBody();
+
+        bool header, received;
+        int toRead, readed;
 
     private:
         int clientFd;
         struct sockaddr_in addr;
         size_t addrLen;
-        std::string request;
+        std::string request, body;
         std::string method, uri, http;
         std::map<std::string, std::string> headers;
         std::string encoding, delimiter;

@@ -3,13 +3,20 @@
 Client::Client() {
     clientFd = -1;
     memset(&addr, 0, sizeof(addr));
-}
-
-Client::Client(int fd): clientFd(fd) {
-    memset(&addr, 0, sizeof(addr));
+    received = false;
+    header = false;
+    toRead = 0;
+    readed = 0;
 }
 
 Client::~Client() {}
+
+void Client::cleanup() {
+    received = false;
+    header = false;
+    toRead = 0;
+    readed = 0;
+}
 
 void Client::setFd(int fd) { clientFd = fd; }
 
@@ -58,3 +65,7 @@ std::string Client::getDelimiter() { return delimiter; }
 void Client::setReqFile(std::string file) { reqFile = file; }
 
 std::string &Client::getReqFile() { return reqFile; }
+
+void Client::setBody(std::string msg) { body = msg; }
+
+std::string &Client::getBody() { return body; }

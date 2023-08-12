@@ -16,6 +16,6 @@ clean:
 				
 fclean:	clean
 	@rm -rf $(NAME)
-	@rm -rf reqBody
+	@rm -rf request*
 
 re:	fclean all
