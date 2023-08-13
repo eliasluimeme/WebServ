@@ -26,5 +26,6 @@
 #include "../Includes/Data.hpp"
 #include "../Includes/Parser.hpp"
 #include "../Includes/Server.hpp"
-#include "../Includes/ConfData.hpp"
 #include "../Includes/Client.hpp"
+#include "../Includes/Request.hpp"
+#include "../Includes/Response.hpp"

@@ -53,17 +53,17 @@ int Server::findClientIndex(int &clientSock) {
 }
 
 void Server::setEncoding(std::map<std::string, std::string> &headers, std::string &encoding, int index) {
-    if (headers.find("Transfer-Encoding:") != headers.end()) {
-        if (headers["Transfer-Encoding:"] == "chunked")
+    if (headers.find("Transfer-Encoding") != headers.end()) {
+        if (headers["Transfer-Encoding"] == "chunked")
             encoding = "chunked";
     }
-    else if (headers.find("Content-Type:") != headers.end() && headers["Content-Type:"].find("multipart/form-data;") != std::string::npos) {
-        std::string val = headers["Content-Type:"];
+    else if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
+        std::string val = headers["Content-Type"];
         delimiter = val.substr(val.find("=") + 1, val.size() - val.find("="));
         clientSockets[index].setDelimiter(delimiter);
         encoding = "multipart";
     }
-    else if (headers.find("Content-Length:") != headers.end())
+    else if (headers.find("Content-Length") != headers.end())
         encoding = "length";
     else if (method != "GET")
         exitWithError("Bad request"); // 400 Bad Request
@@ -83,7 +83,9 @@ void Server::parseRequest(int fd, std::string request) {
         log("Parsing request");
         if (std::getline(iss, line)) {
             std::istringstream is(line);
-            is >> method >> uri >> http; // check query string
+            is >> method >> uri >> http;
+            if (method.compare("GET") && method.compare("POST") && method.compare("DELETE"))
+                exitWithError("Bad request"); // 400 Bad Request
             if (uri.find("?") != std::string::npos)
                 query = uri.substr(uri.find("?") + 1, uri.size() - uri.find("?"));
         } else exitWithError("Bad request"); // 400 Bad Request
@@ -93,7 +95,7 @@ void Server::parseRequest(int fd, std::string request) {
                 break;
             }
             if (line.find(":") != std::string::npos) {
-                key = line.substr(0, line.find(":") + 1);
+                key = line.substr(0, line.find(":"));
                 value = line.substr(line.find(":") + 2, line.size() - line.find(":") - 3);
                 if (!key.empty() && !value.empty())
                     headers[key] = value;
@@ -101,8 +103,8 @@ void Server::parseRequest(int fd, std::string request) {
             }
         }
         setEncoding(headers, encoding, index);
-        if (headers.find("Content-Length:") != headers.end())
-            clientSockets[index].toRead = std::stoi(headers["Content-Length:"]);
+        if (headers.find("Content-Length") != headers.end())
+            clientSockets[index].toRead = std::stoi(headers["Content-Length"]);
         else clientSockets[index].toRead = 0;
         
         clientSockets[index].setHeaders(headers);
@@ -110,12 +112,11 @@ void Server::parseRequest(int fd, std::string request) {
         clientSockets[index].setURI(uri);
         clientSockets[index].setHTTP(http);
         clientSockets[index].setEncoding(encoding);
-        clientSockets[index].setReqFile("reqBody");
     }
 
     if (std::string(fileName.str()).empty())
         fileName << "request-" << std::to_string(fd);
-    file = std::fstream(fileName.str(), std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
+    file = std::fstream(fileName.str(), std::ios::out | std::ios::app | std::ios::binary);
     if (!file.is_open())
         exitWithError("Can't open request file");
 
@@ -124,13 +125,16 @@ void Server::parseRequest(int fd, std::string request) {
         end += 4;
         request = request.erase(0, end);
     }
+
+    // parse body
+
     file.write(request.c_str(), request.size());
     clientSockets[index].readed += request.size();
-
     std::cout << "to read: " << clientSockets[index].toRead << " readed: " << clientSockets[index].readed << std::endl;
     if (clientSockets[index].readed >= clientSockets[index].toRead) {
         log("------ Request body received ------\n");
         clientSockets[index].received = true;
+        // file.close();
     } else
         log("------ Request body not received ------\n");
 }
@@ -144,14 +148,13 @@ void Server::buildResponse() {
 }
 
 void Server::sendResponse(int &clientFd) {
+    Response response;
     int index = findClientIndex(clientFd);
-    buildResponse();
 
-    // read request body from file
-    if (file.is_open()) {
-        log("reading from file....");
-        file.close();
-    } else exitWithError("Can't open file");
+    buildResponse();
+    std::string name(fileName.str());
+    response.buildResponse(clientSockets[index], file, name, responseMsg);
+    file.close();
 
     size_t bytesSent;
     bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
@@ -167,9 +170,9 @@ void Server::sendResponse(int &clientFd) {
     close(clientFd);
 
     // delete file after sending response
-    std::string s(fileName.str());
-    if (std::remove(s.c_str()))
-        exitWithError("Error removing file");
+    // std::string s(fileName.str());
+    // if (std::remove(s.c_str()))
+    //     exitWithError("Error removing file");
 }
 
 void Server::handleRequest(int &clientFd) {

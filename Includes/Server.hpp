@@ -7,6 +7,7 @@
 #define TIMEOUT 5.0
 
 class ConfData;
+class Response;
 class Client;
 
 class Server {

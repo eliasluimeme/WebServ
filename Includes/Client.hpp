@@ -13,6 +13,7 @@ enum clientState {
 class Client {
     public:
         Client();
+        Client& operator=(const Client&);
         ~Client();
 
         void setFd(int);
@@ -22,8 +23,6 @@ class Client {
         sockaddr_in &getAddr();
         void setAddrLen(int);
         size_t getAddrLen();
-        void setRequestMsg(std::string);
-        std::string getRequestMsg();
         void setHeaders(std::map<std::string, std::string> &);
         std::map<std::string, std::string> &getHeaders();
         void setHeaderValue(std::string &, std::string &);
@@ -38,23 +37,19 @@ class Client {
         std::string getEncoding();
         void setDelimiter(std::string &);
         std::string getDelimiter();
-        void setReqFile(std::string);
-        std::string &getReqFile();
-        void setBody(std::string);
-        std::string &getBody();
+        void setFile(std::fstream &);
+        std::fstream &getFile();
 
         bool header, received;
         int toRead, readed;
 
     private:
+        Data data; // assign
         int clientFd;
         struct sockaddr_in addr;
         size_t addrLen;
-        std::string request, body;
         std::string method, uri, http;
         std::map<std::string, std::string> headers;
         std::string encoding, delimiter;
-        std::string reqFile;
-
-        ConfData* confData;
+        // std::fstream file;
 };

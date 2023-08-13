@@ -9,6 +9,25 @@ Client::Client() {
     readed = 0;
 }
 
+Client& Client::operator=(const Client &cl) {
+    if (this != &cl) {
+        clientFd = cl.clientFd;
+        addr = cl.addr;
+        addrLen = cl.addrLen;
+        headers = cl.headers;
+        method = cl.method;
+        uri = cl.uri;
+        http = cl.http;
+        encoding = cl.encoding;
+        delimiter = cl.delimiter;
+        received = cl.received;
+        header = cl.header;
+        toRead = cl.toRead;
+        readed = cl.readed;
+    }
+    return *this;
+}
+
 Client::~Client() {}
 
 void Client::cleanup() {
@@ -29,10 +48,6 @@ sockaddr_in &Client::getAddr() { return addr; }
 void Client::setAddrLen(int addrL) {addrLen = addrL; }
 
 size_t Client::getAddrLen() { return addrLen; }
-
-void Client::setRequestMsg(std::string msg) { request = msg; }
-
-std::string Client::getRequestMsg() { return request; }
 
 void Client::setHeaders(std::map<std::string, std::string> &header) { headers = header; }
 
@@ -62,10 +77,6 @@ void Client::setDelimiter(std::string &deli) { delimiter = deli; }
 
 std::string Client::getDelimiter() { return delimiter; }
 
-void Client::setReqFile(std::string file) { reqFile = file; }
+// void Client::setFile(std::fstream &reqfile) { file = reqfile; }
 
-std::string &Client::getReqFile() { return reqFile; }
-
-void Client::setBody(std::string msg) { body = msg; }
-
-std::string &Client::getBody() { return body; }
+// std::fstream &Client::getFile() { return file; }
