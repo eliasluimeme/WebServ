@@ -43,7 +43,7 @@ class Server {
         std::fstream file;
         std::stringstream fileName;
         int toRead, readed;
-        bool header, received;
+        bool header, received, endHeader;
 };
 
 // TO DO
