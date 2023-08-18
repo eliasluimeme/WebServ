@@ -27,9 +27,8 @@ void Server::closeServer() {
 
 void Server::cleanup() {
     log("cleaning...");
-    if (file.is_open())
-        file.close();
-    fileName.clear();
+    // if (file.is_open())
+    //     file.close();
     endHeader = false;
 }
 
@@ -74,6 +73,77 @@ void Server::setEncoding(std::map<std::string, std::string> &headers, std::strin
     std::cout << "- Encoding: " << encoding << std::endl;
 }
 
+static int re = 0;
+static int left = 0;
+
+bool isHexa(std::string str)
+{
+    bool is = false;
+    for (int i = 0; i < str.size(); i++) {
+        if (std::isxdigit(str[i]))
+            is = true;
+        else {
+            is = false;
+            break;
+        }
+    }
+    return is;
+}
+
+void Server::processChunked(std::string chunks, std::string filename) {
+	std::string	body = "";
+	std::string	subchunk = "";
+	size_t		i = 0;
+    re = 0;
+    int chunksize = 0;
+    int end = 0;
+
+	std::fstream file;
+    file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
+    if (file.is_open()) {
+	    while (1) {
+            if (left) {
+                std::cout << "In Left: " << left << std::endl;
+                body = chunks.substr(0, left);
+                file.write(body.c_str(), body.size());
+                chunks.erase(0, left + 2);
+                left = 0;
+                body.clear();
+            }
+            end = chunks.find("\r\n");
+            subchunk = chunks.substr(0, end);
+            std::cout << "End: " << end << std::endl;
+            if (isHexa(subchunk)) {
+                chunksize = strtol(subchunk.c_str(), NULL, 16);
+                chunks.erase(0, end + 2);
+                std::cout << "Subchunk: " << subchunk << std::endl;
+                std::cout << "Chunksize: " << chunksize << std::endl;
+            }
+            if (!chunksize)
+                break;
+
+	    	body = chunks.substr(0, chunksize);
+            re = body.size();
+            if(!re)
+                break;
+            left = chunksize - re;
+            file.write(body.c_str(), body.size());
+            chunks.erase(0, chunksize + 2);
+
+            std::cout << "Readed: " << re << std::endl;
+            std::cout << "Left: " << left << std::endl;
+            if (left)
+                break;
+            body.clear();
+	    }
+
+        file.close();
+    } else {
+        std::cout << "Error opening file" << std::endl;
+        exit(1);
+    }
+}
+
 void Server::parseRequest(int fd, std::string request) {
     std::map<std::string, std::string> headers;
     std::string encoding, delimiter;
@@ -84,7 +154,6 @@ void Server::parseRequest(int fd, std::string request) {
     std::istringstream iss(request);
 
     if (clientSockets[index].header == false) {
-        log("Parsing request...");
         if (std::getline(iss, line)) {
             std::istringstream is(line);
             is >> method >> uri >> http;
@@ -117,6 +186,12 @@ void Server::parseRequest(int fd, std::string request) {
         // if (clientSockets[index].toRead > BODY_SIZE)
         //     exitWithError("Request too big"); // 413 Request Intity Too Large
 
+        int end = request.find("\r\n\r\n");
+        if (end != std::string::npos) {
+            end += 4;
+            request = request.erase(0, end);
+        }
+
         clientSockets[index].setHeaders(headers);
         clientSockets[index].setMethod(method);
         clientSockets[index].setURI(uri);
@@ -124,24 +199,18 @@ void Server::parseRequest(int fd, std::string request) {
         clientSockets[index].setEncoding(encoding);
     }
 
-    if (std::string(fileName.str()).empty())
-        fileName << "request-" << std::to_string(fd);
-    file = std::fstream(fileName.str(), std::ios::out | std::ios::app | std::ios::binary);
+    std::stringstream fileName;
+    fileName << "request-" << std::to_string(fd);
+    std::fstream file = std::fstream(fileName.str(), std::ios::out | std::ios::app | std::ios::binary);
     if (!file.is_open())
         exitWithError("Can't open request file");
 
-    if (!endHeader) {
-        int end = request.find("\r\n\r\n");
-        std::cout << "end " << end << std::endl;
-        if (end != std::string::npos) {
-            end += 4;
-            request = request.erase(0, end);
-            endHeader = true;
-        }
-    }
     // parse body
+    if (clientSockets[index].encoding == "chunked")
+        processChunked(request, fileName.str());
+    else if (clientSockets[index].encoding == "length")
+        file.write(request.c_str(), request.size());
 
-    file.write(request.c_str(), request.size());
     clientSockets[index].readed += request.size();
     std::cout << "to read: " << clientSockets[index].toRead << " readed: " << clientSockets[index].readed << std::endl;
     if (clientSockets[index].readed >= clientSockets[index].toRead) {
@@ -162,9 +231,11 @@ void Server::buildResponse() {
 
 void Server::sendResponse(int &clientFd) {
     Response response;
+    std::stringstream fileName;
     int index = findClientIndex(clientFd);
-
+ 
     buildResponse();
+    fileName << "request-" << std::to_string(clientSockets[index].getFd());
     std::string name(fileName.str());
     response.buildResponse(clientSockets[index], name, responseMsg);
 
@@ -192,7 +263,7 @@ void Server::handleRequest(int &clientFd) {
     std::cout << "Client " << clientFd << std::endl << std::endl;
     char *buff = new char[BUFFER_SIZE];
 
-    std::string request;
+    std::string reqMsg;
     int index = findClientIndex(clientFd);
     size_t bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
 
@@ -205,11 +276,13 @@ void Server::handleRequest(int &clientFd) {
         FD_CLR(clientFd, &readSetTmp);
         close(clientFd);
     } else {
-        buff[bytesRead] = '\0';
-        request = std::string(buff, bytesRead);
+        Request request;
+        reqMsg = std::string(buff, bytesRead);
         delete[] buff;
         buff = NULL;
-        parseRequest(clientFd, request);
+        clientSockets[index].setRequest(reqMsg);
+        // parseRequest(clientFd, reqMsg);
+        request.parseRequest(clientSockets[index]);
 
         if (clientSockets[index].received == true) {
             FD_CLR(clientFd, &readSetTmp);

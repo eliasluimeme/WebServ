@@ -37,19 +37,22 @@ class Client {
         std::string getEncoding();
         void setDelimiter(std::string &);
         std::string getDelimiter();
-        void setFile(std::fstream &);
-        std::fstream &getFile();
+        void setQuery(std::string &);
+        std::string getQuery();
+        void setRequest(std::string &);
+        std::string &getRequest();
 
         bool header, received;
-        int toRead, readed;
+        int toRead, readed, chunkSize, left;
+        std::string encoding, delimiter;
 
     private:
         Data data; // assign
         int clientFd;
         struct sockaddr_in addr;
         size_t addrLen;
-        std::string method, uri, http;
+        std::string method, uri, query, http;
+        std::string request;
         std::map<std::string, std::string> headers;
-        std::string encoding, delimiter;
-        // std::fstream file;
+
 };

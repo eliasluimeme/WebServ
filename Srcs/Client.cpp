@@ -7,6 +7,7 @@ Client::Client() {
     header = false;
     toRead = 0;
     readed = 0;
+    left = 0;
 }
 
 Client& Client::operator=(const Client &cl) {
@@ -24,6 +25,7 @@ Client& Client::operator=(const Client &cl) {
         header = cl.header;
         toRead = cl.toRead;
         readed = cl.readed;
+        request = cl.request;
     }
     return *this;
 }
@@ -77,6 +79,10 @@ void Client::setDelimiter(std::string &deli) { delimiter = deli; }
 
 std::string Client::getDelimiter() { return delimiter; }
 
-// void Client::setFile(std::fstream &reqfile) { file = reqfile; }
+void Client::setQuery(std::string &q) { query = q; }
 
-// std::fstream &Client::getFile() { return file; }
+std::string Client::getQuery() { return query; }
+
+void Client::setRequest(std::string &req) { request = req; }
+
+std::string &Client::getRequest() { return request; }

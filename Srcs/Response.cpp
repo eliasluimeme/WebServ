@@ -12,17 +12,17 @@ void Response::buildResponse(Client &cl, std::string &filename, std::string &msg
     if (file.is_open()) {
         std::cout << "Reading from response file... " << std::endl;
         std::string line;
-        while (getline(file, line))
-            std::cout << line << std::endl;
+        // while (getline(file, line))
+        //     std::cout << line << std::endl;
         file.close();
     } else {
-        std::cout << "Can't open request file" << std::endl;
+        std::cout << "Can't open request file.." << std::endl;
         exit(EXIT_FAILURE);
     }
 
     // Delete file after sending request
-    if (std::remove(filename.c_str())) {
-        std::cout << "Error removing file" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    // if (std::remove(filename.c_str())) {
+    //     std::cout << "Error removing file" << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
 }
