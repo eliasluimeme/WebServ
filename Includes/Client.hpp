@@ -41,10 +41,13 @@ class Client {
         std::string getQuery();
         void setRequest(std::string &);
         std::string &getRequest();
+        void setConfData(Data &);
+        Data &getConfData();
 
         bool header, received;
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
+        std::string leftInChunk;
 
     private:
         Data data; // assign

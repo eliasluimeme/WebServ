@@ -16,6 +16,6 @@ clean:
 				
 fclean:	clean
 	@rm -rf $(NAME)
-	@rm -rf request*
+	@rm -rf request* output.txt
 
 re:	fclean all

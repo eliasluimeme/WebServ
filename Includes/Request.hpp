@@ -12,10 +12,10 @@ class Request {
         void log(std::string);
         void exitWithError(const std::string);
         void setEncoding(Client &, std::string &);
-        void processChunked(Client &, std::string &, std::string &);
+        void processChunked(Client &, std::string &);
         bool isHexa(std::string &);
 
     private:
-        std::string method, uri, http, query, delimiter;
+        std::string method, uri, http, query, delimiter, tmp;
         int re;
 };

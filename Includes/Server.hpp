@@ -2,7 +2,7 @@
 
 #include "../Includes/Includes.hpp"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4000
 #define MAX_CLIENTS 10
 #define TIMEOUT 5.0
 
@@ -30,7 +30,8 @@ class Server {
         void cleanup();
         void setEncoding(std::map<std::string, std::string> &, std::string &, int);
         int  findClientIndex(int &);
-        void processChunked(std::string chunks, std::string filename);
+        Data &getConfData();
+        // void processChunked(std::string chunks, std::string filename);
 
     private:
         Data data;

@@ -86,3 +86,7 @@ std::string Client::getQuery() { return query; }
 void Client::setRequest(std::string &req) { request = req; }
 
 std::string &Client::getRequest() { return request; }
+
+void Client::setConfData(Data &confData) { data = confData; }
+
+Data &Client::getConfData() { return data; }
