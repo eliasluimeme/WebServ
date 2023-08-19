@@ -4,7 +4,7 @@ SRC	= ./Srcs/main.cpp ./Srcs/Client.cpp ./Srcs/Parser.cpp ./Srcs/Server.cpp ./Sr
 
 OBJ	= $(SRC:.cpp=.o)
 
-FLAGS = -std=c++98 #-fsanitize=address -g3 #-Wall -Wextra -Werror 
+FLAGS = -std=c++98 -fsanitize=address -g3 -lz #-Wall -Wextra -Werror 
 
 all: $(NAME)
 
@@ -16,6 +16,6 @@ clean:
 				
 fclean:	clean
 	@rm -rf $(NAME)
-	@rm -rf request*
+	@rm -rf request* output.txt
 
 re:	fclean all

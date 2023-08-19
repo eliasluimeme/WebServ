@@ -22,6 +22,7 @@
 #include <exception>
 #include <string>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "../Includes/Data.hpp"
 #include "../Includes/Parser.hpp"
