@@ -83,7 +83,7 @@ void Request::processChunked(Client &client, std::string &filename) {
                         // std::cout << "client.leftInChunk: " << client.leftInChunk << std::endl;
                         break;
                     }
-                    std::cout << "Body: " << body << std::endl;
+                    // std::cout << "Body: " << body << std::endl;
                 }
                 continue;
             }
