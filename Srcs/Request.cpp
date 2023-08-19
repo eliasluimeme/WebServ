@@ -161,7 +161,7 @@ void Request::parseRequest(Client &client) {
         setEncoding(client, encoding);
         client.setEncoding(encoding);
         if (headers.find("Content-Length") != headers.end())
-            client.toRead = std::stoi(headers["Content-Length"]);
+            client.toRead = atoi(headers["Content-Length"].c_str());
         else client.toRead = 0;
         // if (client.toRead > BODY_SIZE)
         //     exitWithError("Request too big"); // 413 Request Intity Too Large
@@ -178,8 +178,10 @@ void Request::parseRequest(Client &client) {
     }
 
     std::stringstream fileName;
-    fileName << "request-" << std::to_string(client.getFd());
-    std::fstream file = std::fstream(fileName.str(), std::ios::out | std::ios::app | std::ios::binary);
+    std::stringstream temp;
+    temp << client.getFd();
+    fileName << "request-" << temp.str();
+    std::fstream file(fileName.str().c_str(), std::ios::out | std::ios::app | std::ios::binary);
     if (!file.is_open())
         exitWithError("Can't open request file..");
 

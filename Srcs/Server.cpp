@@ -70,7 +70,9 @@ void Server::sendResponse(int &clientFd) {
     int index = findClientIndex(clientFd);
  
     buildResponse();
-    fileName << "request-" << std::to_string(clientSockets[index].getFd());
+    std::stringstream ss;
+    ss << clientSockets[index].getFd();
+    fileName << "request-" << ss.str();
     std::string name(fileName.str());
     response.buildResponse(clientSockets[index], name, responseMsg);
 
@@ -159,8 +161,9 @@ bool Server::initServer() {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0)
         exitWithError("Couldn't create socket");
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_NOSIGPIPE, (char *)&i, sizeof(i)) < 0)
-        exitWithError("Couldn't set SO_NOSIGPIPE");
+    signal(SIGPIPE, SIG_IGN);
+    // if (setsockopt(serverSocket, SOL_SOCKET, SO_NOSIGPIPE, (char *)&i, sizeof(i)) < 0)
+        // exitWithError("Couldn't set SO_NOSIGPIPE");
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&i, sizeof(i)) < 0)
         exitWithError("Couldn't set SO_REUSEADDR");
     if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)

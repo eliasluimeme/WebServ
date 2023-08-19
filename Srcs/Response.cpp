@@ -7,7 +7,7 @@ Response::~Response() {}
 void Response::buildResponse(Client &cl, std::string &filename, std::string &msg) {
     client = cl;
     std::fstream file;
-    file.open(filename, std::ios::in | std::ios::out);
+    file.open(filename.c_str(), std::ios::in | std::ios::out);
 
     if (file.is_open()) {
         std::cout << "Reading from response file... " << std::endl;
