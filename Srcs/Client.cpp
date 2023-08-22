@@ -14,7 +14,7 @@ Client& Client::operator=(const Client &cl) {
     if (this != &cl) {
         clientFd = cl.clientFd;
         addr = cl.addr;
-        addrLen = cl.addrLen;
+        // addrLen = cl.addrLen;
         headers = cl.headers;
         method = cl.method;
         uri = cl.uri;
@@ -47,9 +47,9 @@ void Client::setAddr(struct sockaddr_in &socketAddr) { addr = socketAddr; }
 
 sockaddr_in &Client::getAddr() { return addr; }
 
-void Client::setAddrLen(int addrL) {addrLen = addrL; }
+// void Client::setAddrLen(int addrL) {addrLen = addrL; }
 
-size_t Client::getAddrLen() { return addrLen; }
+// size_t Client::getAddrLen() { return addrLen; }
 
 void Client::setHeaders(std::map<std::string, std::string> &header) { headers = header; }
 

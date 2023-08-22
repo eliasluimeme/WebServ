@@ -9,7 +9,7 @@ FLAGS = -std=c++98  -g3 -lz #-Wall -Wextra -Werror -fsanitize=address
 all: $(NAME)
 
 $(NAME): $(SRC)
-	@c++ $(FLAGS) $(SRC) -o $(NAME)
+	@clang++ $(FLAGS) $(SRC) -o $(NAME)
 
 clean:
 	@rm -rf $(OBJ)

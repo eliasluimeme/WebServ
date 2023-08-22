@@ -36,16 +36,11 @@ void Request::setEncoding(Client &client, std::string &encoding) {
 }
 
 bool Request::isHexa(std::string &str) {
-    bool is = false;
     for (int i = 0; i < str.size(); i++) {
-        if (std::isxdigit(str[i]))
-            is = true;
-        else {
-            is = false;
-            break;
-        }
+        if (!std::isxdigit(str[i]))
+            return false;
     }
-    return is;
+    return true;
 }
 
 void Request::processChunked(Client &client, std::string &filename) {
@@ -61,29 +56,24 @@ void Request::processChunked(Client &client, std::string &filename) {
     file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
     if (file.is_open()) {
 	    while (1) {
-            // std::cout << "Body size: " << chunks.size() << std::endl;
             if (!chunks.size())
                 break;
             if (client.left) {
-                // std::cout << "In Left: " << client.left << std::endl;
                 body = chunks.substr(0, client.left);
-                // std::cout << "Read in left: " << body.size() << std::endl;
                 if (!body.size())
                     break;
                 chunks.erase(0, client.left);
                 client.readed += body.size();
                 client.left -= body.size();
-                // std::cout << "Left: " << client.left << std::endl;
+                std::cout << "Left: " << client.left << std::endl;
                 file.write(body.c_str(), body.size());
                 if (client.left == 0 && chunks.size()) {
                     if (chunks.find("\r\n") == 0)
                         chunks.erase(0, 2);
-                    if (chunks.size() < 10) {
+                    if (chunks.size() < 15) {
                         client.leftInChunk = chunks;
-                        // std::cout << "client.leftInChunk: " << client.leftInChunk << std::endl;
                         break;
                     }
-                    // std::cout << "Body: " << body << std::endl;
                 }
                 continue;
             }
@@ -94,13 +84,11 @@ void Request::processChunked(Client &client, std::string &filename) {
                     chunks.erase(0, 2);
             }
             if ((end = chunks.find("\r\n")) > 0) {
-                // std::cout << "End: " << end << std::endl;
+                std::cout << "End: " << end << std::endl;
                 subchunk = chunks.substr(0, end);
                 if (isHexa(subchunk)) {
                     client.chunkSize = strtol(subchunk.c_str(), NULL, 16);
                     chunks.erase(0, end + 2);
-                    // std::cout << "Subchunk: " << subchunk << std::endl;
-                    // std::cout << "Chunksize: " << client.chunkSize << std::endl;
                 }
                 if (!client.chunkSize)
                     break;
@@ -113,9 +101,8 @@ void Request::processChunked(Client &client, std::string &filename) {
             client.left = client.chunkSize - readed;
             file.write(body.c_str(), body.size());
             chunks.erase(0, readed);
-
-            // std::cout << "Readed: " << readed << std::endl;
-            // std::cout << "client.left: " << client.left << std::endl;
+            if (chunks.find("\r\n") == 0)
+                    chunks.erase(0, 2);
             if (client.left)
                 break;
             body.clear();
@@ -185,7 +172,6 @@ void Request::parseRequest(Client &client) {
     if (!file.is_open())
         exitWithError("Can't open request file..");
 
-    // parse body
     std::string name(fileName.str());
     if (client.encoding == "chunked")
         processChunked(client, name);
@@ -199,6 +185,5 @@ void Request::parseRequest(Client &client) {
         log("------ Request body received ------\n");
         client.received = true;
         file.close();
-    } else
-        log("------ Request body not received ------\n");
+    }
 }

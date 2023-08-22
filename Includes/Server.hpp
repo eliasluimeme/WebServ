@@ -2,7 +2,7 @@
 
 #include "../Includes/Includes.hpp"
 
-#define BUFFER_SIZE 4000
+#define BUFFER_SIZE 10000
 #define MAX_CLIENTS 10
 #define TIMEOUT 5.0
 
@@ -10,6 +10,14 @@ class ConfData;
 class Response;
 class Client;
 class Request;
+
+struct Servers {
+    std::string ipAdress;
+    int port;
+    int serverSocket;
+    struct sockaddr_in serverAddr;
+    std::vector<Client> clientSockets;
+};
 
 class Server {
     public:
@@ -19,18 +27,18 @@ class Server {
         bool initServer();
         void setConfData(Data &);
         void closeServer();
-        void acceptConnection();
-        void handleRequest(int &);
+        void acceptConnection(Servers &);
+        void handleRequest(Servers &,int &);
         void buildResponse();
-        void sendResponse(int &);
-        void parseRequest(int, std::string);
+        void sendResponse(Servers &, int &);
         void setNonBlocking(int &);
         void exitWithError(std::string);
         void log(std::string);
         void cleanup();
-        void setEncoding(std::map<std::string, std::string> &, std::string &, int);
-        int  findClientIndex(int &);
+        int  findClientIndex(Servers &, int &);
         Data &getConfData();
+        // void parseRequest(int, std::string);
+        // void setEncoding(std::map<std::string, std::string> &, std::string &, int);
         // void processChunked(std::string chunks, std::string filename);
 
     private:
@@ -39,9 +47,10 @@ class Server {
         struct timeval timeout;
         std::string ipAdress;
         int port, maxFd;
-        int serverSocket, clientSocket;
-        struct sockaddr_in serverAddr, clientAddr;
-        std::vector<Client> clientSockets;
+        // int serverSocket, clientSocket;
+        struct sockaddr_in clientAddr;
+        std::vector<Servers> servers;
+        // std::vector<Client> clientSockets;
         std::string method, uri, http, query, delimiter, responseMsg;
         int toRead, readed;
         bool header, received, endHeader;
