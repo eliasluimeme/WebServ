@@ -29,7 +29,7 @@ private:
 	int									_client_body_buffer_size; // max size for the client body, defaults to 8 000
 	std::map<std::string, std::string>	_cgi_param;
 	std::string							_cgi_pass;
-	std::map<std::string, ConfigServer>_location;
+	std::map<std::string, ConfigServer> _location;
 	std::set<std::string>				_allowed_methods;
 	std::vector<std::string>			_index;
 	bool								_autoindex;

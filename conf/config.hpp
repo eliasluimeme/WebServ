@@ -11,6 +11,8 @@
 #include "RequestConfig.hpp"
 
 class RequestConfiga;
+class Data;
+
 class Config
 {
 private:
@@ -20,7 +22,7 @@ public:
     Config(){}
     Config(std::string defaultserverPath);
     virtual ~Config(); 
-    int parse(const char* filename);
+    int parse(const char* filename, confData &);
     std::vector<ConfigServer> getServer() const;
     // RequestConfiga   getConfigForRequest(t_listen const adress, std::string const uri, std::string hostname, const std::string &methodt) const;
     // RequestConfiga messi();

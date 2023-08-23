@@ -185,9 +185,6 @@ int     ConfigServer::parseLocation(unsigned int &index, filevector &file)
     std::string  directive = "";
 
     if (file[index++] != "{")
-                    (this->*ConfigServer::serverParsingMap[directive])(args);
-                    args.clear();
-                    directive = "";
         return 0;
     for ( ;index < file.size() && file[index] != "}"; index++)
     {
