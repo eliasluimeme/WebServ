@@ -6,7 +6,7 @@
 #include "HelperFunc.hpp"
 #include "ReaderConf.hpp"
 #include "ConfigServer.hpp"
-#include "../request/Request.hpp"
+// #include "../request/Request.hpp"
 // #include "RequestConfig.hpp"
 
 class RequestConfiga;

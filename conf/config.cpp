@@ -57,7 +57,7 @@ int Config::parse(const char *filename)
             return 1;
         }   
     }
-    std::cout << this->_server[1] << '\n';  
+    std::cout << this->_server[0] << '\n';  
 
     return 0;
 }

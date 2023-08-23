@@ -2,7 +2,7 @@
 #define REQUEST_CONFIG_HPP
 
 #include "../include/webserv.hpp"
-#include "../request/Request.hpp"
+// #include "../request/Request.hpp"
 #include "config.hpp"
 
 class RequestConfiga

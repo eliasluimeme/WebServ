@@ -47,7 +47,7 @@
 
 # define RECV_SIZE 65536
 # define CGI_BUFSIZE 65536
-# define DEFAULT_CONFIG "../config/files/default.conf"
+# define DEFAULT_CONFIG "../conf/files/default.conf"
 
 bool compare_langs(const std::pair<std::string, float> first, const std::pair<std::string, float> second);
 std::string& strip(std::string &str, char c);
