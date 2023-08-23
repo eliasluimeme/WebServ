@@ -107,10 +107,13 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     int index = findClientIndex(server, clientFd);
 
     size_t bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
+    std::stringstream fd;
+    fd << clientFd;
+
     if (bytesRead <= 0) {
         if (bytesRead == 0)
             log("------ Connection closed -------\n\n");
-        else log("[-] Couldn't read from socket");
+        else log("[-] Couldn't read from socket " + fd.str());
 
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &readSetTmp);
@@ -139,7 +142,6 @@ void Server::acceptConnection(Servers &server) {
         exitWithError("Couldn't accept connection. Accept failed");
     
     log("------ New Connection accepted ------\n");
-    std::cout << "connection from client socket: " << clientSocket << std::endl << std::endl;
 
     setNonBlocking(clientSocket);
     FD_SET(clientSocket, &readSetTmp);
@@ -194,7 +196,7 @@ bool Server::initServer() {
         log(ss.str());
 
         FD_SET(serv.serverSocket, &readSet);
-        maxFd = serv.serverSocket;
+        maxFd = std::max(maxFd, serv.serverSocket);
     }
     return true;
 }
@@ -220,12 +222,11 @@ void Server::startServer(Data &confData) {
         readSetTmp = readSet;
         writeSetTmp = writeSet;
 
-        log("====== Waiting for a new connection ======\n\n");
+        log("====== Waiting for a new connection ======\n");
         if ((sel = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
             exitWithError("Select failed!");
-        std::cout << "sel " << sel << std::endl;
         // else if (sel == 0)
-        //     exitWithError("Timeout accured.."); // error 408 timeout
+        //     exitWithError("Timeout accured.."); // error 504 timeout
 
         for (int servIndex = 0; servIndex < servers.size(); servIndex++) {
             if (FD_ISSET(servers[servIndex].serverSocket, &readSet)) 

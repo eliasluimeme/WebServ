@@ -1,6 +1,4 @@
-
-
-#include "RequestConfig.hpp"
+#include "../Includes/Includes.hpp"
 
 RequestConfiga::RequestConfiga()
 {
@@ -134,7 +132,7 @@ void RequestConfiga::setHostPort(const t_listen hostport)
 std::string RequestConfiga::addindex(Request& request)
 {
     std::vector<std::string>::iterator it;
-    std::list<std::pair<std::string, float >>::const_iterator lang;
+    std::list<std::pair<std::string, float > >::const_iterator lang;
     std::string path;
 
     it = this->_index.begin();

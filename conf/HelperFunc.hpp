@@ -1,7 +1,7 @@
 
 #ifndef CONFIG_HELPER_FUNCTIONS_HPP
 
-# include "../include/webserv.hpp"
+# include "../Includes/Includes.hpp"
 
 # define CONFIG_HELPER_FUNCTIONS_HPP
 

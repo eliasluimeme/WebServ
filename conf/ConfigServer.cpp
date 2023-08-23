@@ -1,4 +1,4 @@
-#include "ConfigServer.hpp"
+#include "../Includes/Includes.hpp"
 
 //constructors
 
@@ -62,7 +62,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     file =  ReaderConf::readfile(filename);
     if (file.empty())
     {
-        std::cerr << RED << "could not open default file at location nmm" << filename << std::endl;
+        std::cerr << "could not open default file at location nmm" << filename << std::endl;
         throw ReaderConf::FileNotfoundException();
     }
     // exit(1);
@@ -76,7 +76,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     if (!server.parseServer(index, file))
     {
         
-        std::cerr << RED << "invalid default config file" << std::endl;
+        std::cerr << "invalid default config file" << std::endl;
         throw ConfigServer::InvalidArgumentsException();
     }
     ConfigServer::_defaultServer = server;
@@ -185,6 +185,9 @@ int     ConfigServer::parseLocation(unsigned int &index, filevector &file)
     std::string  directive = "";
 
     if (file[index++] != "{")
+                    (this->*ConfigServer::serverParsingMap[directive])(args);
+                    args.clear();
+                    directive = "";
         return 0;
     for ( ;index < file.size() && file[index] != "}"; index++)
     {

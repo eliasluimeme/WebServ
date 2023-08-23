@@ -23,6 +23,8 @@
 #include <string>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <set>
+#include <limits>
 
 #include "../Includes/Data.hpp"
 #include "../Includes/Parser.hpp"
@@ -30,3 +32,11 @@
 #include "../Includes/Client.hpp"
 #include "../Includes/Request.hpp"
 #include "../Includes/Response.hpp"
+
+#include "../conf/config.hpp"
+#include "../conf/ConfigServer.hpp"
+#include "../conf/HelperFunc.hpp"
+#include "../conf/ReaderConf.hpp"
+#include "../conf/StructData.hpp"
+#include "../conf/RequestConfig.hpp"
+#include "../conf/webserv.hpp"

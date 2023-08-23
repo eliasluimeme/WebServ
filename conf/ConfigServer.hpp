@@ -1,7 +1,7 @@
 #if !defined(CONFIGSERVER_HPP)
 #define CONFIGSERVER_HPP
 
-#include "../include/webserv.hpp"
+#include "../Includes/Includes.hpp"
 #include "config.hpp"
 
 class ConfigServer

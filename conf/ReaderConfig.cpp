@@ -1,5 +1,4 @@
-
-#include "ReaderConf.hpp"
+#include "../Includes/Includes.hpp"
 
 ReaderConf::ReaderConf(void)
 {
@@ -61,7 +60,7 @@ filevector ReaderConf::readfile(const char * filename)
     }
     if (ret == -1)
     {
-        std::cerr << RED << "error while reading config file" << std::endl;
+        std::cerr << "error while reading config file" << std::endl;
         return file;
     }
     file = ReaderConf::split(line, std::string(" \n\t"));

@@ -1,7 +1,4 @@
-
-#include "HelperFunc.hpp"
-
-
+#include "../Includes/Includes.hpp"
 
 std::string	to_string(size_t n)
 {
