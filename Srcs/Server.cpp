@@ -72,7 +72,7 @@ void Server::sendResponse(Servers &server, int &clientFd) {
     ss << server.clientSockets[index].getFd();
     fileName << "request-" << ss.str();
     std::string name(fileName.str());
-    response.buildResponse(server.clientSockets[index], name, responseMsg); // TODO check servers
+    response.buildResponse(server.clientSockets[index], server.serverData, name, responseMsg); // TODO send from response
 
     size_t bytesSent;
     bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);

@@ -85,8 +85,8 @@ int main(int ac, char **av) {
 // change names in config;
     // allow_methods -> methods
     // client_body_buffer_size -> body_size
+// to check in conf: root, bodysize, 
 
 
 // TODO FOR SERVER
 // timeout 408 504
-// bodysize

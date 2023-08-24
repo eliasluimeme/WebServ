@@ -2,9 +2,10 @@
 
 #include "../Includes/Includes.hpp"
 
-#define BUFFER_SIZE 100000
+#define BUFFER_SIZE 10000
+#define REQUEST_TIMEOUT 30
+#define RESPONSE_TIMEOUT 30
 #define MAX_CLIENTS 20
-#define TIMEOUT 5.0
 
 class Response;
 class Client;

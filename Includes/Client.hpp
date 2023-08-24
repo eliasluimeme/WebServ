@@ -53,7 +53,6 @@ class Client {
         Data data; // assign
         int clientFd;
         struct sockaddr_in addr;
-        // size_t addrLen;
         std::string method, uri, query, http;
         std::string request;
         std::map<std::string, std::string> headers;

@@ -4,10 +4,10 @@ Response::Response() {}
 
 Response::~Response() {}
 
-void Response::buildResponse(Client &cl, std::string &filename, std::string &msg) {
+void Response::buildResponse(Client &cl, Data &serverData, std::string &filename, std::string &msg) {
     client = cl;
     std::fstream file;
-    file.open(filename.c_str(), std::ios::in | std::ios::out);
+    file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
 
     if (file.is_open()) {
         std::string line;

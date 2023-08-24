@@ -53,7 +53,7 @@ void Request::processChunked(Client &client, std::string &filename) {
     bool        flag = false;
 
 	std::fstream file;
-    file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
+    file.open(filename.c_str(), std::ios::out | std::ios::app | std::ios::binary);
     if (file.is_open()) {
 	    while (1) {
             if (!chunks.size())
@@ -150,8 +150,8 @@ void Request::parseRequest(Client &client) {
         if (headers.find("Content-Length") != headers.end())
             client.toRead = atoi(headers["Content-Length"].c_str());
         else client.toRead = 0;
-        // if (client.toRead > BODY_SIZE)
-        //     exitWithError("Request too big"); // 413 Request Intity Too Large
+        if (client.toRead > client.getConfData().bodySize)
+            exitWithError("Request body too large"); // 413 Request Intity Too Large
 
         int end = request.find("\r\n\r\n");
         if (end != std::string::npos)
