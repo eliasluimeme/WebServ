@@ -41,7 +41,21 @@ filevector ReaderConf::split(std::string str, std::string c)
     }
     return tokens;
 }
-
+bool ReaderConf::checkfile(std::string file)
+{
+    std::istringstream iss(file);
+    std::string line;
+    int i = 0;
+    while (std::getline(iss, line))
+    {
+        // std::cout <<RED<< line << std::endl;
+        if ((line.find("{") != std::string::npos) || (line.find("}") != std::string::npos) || line == "")
+            i++;
+        else if(line.find(';') == std::string::npos)
+            return false;
+    }
+    return true;
+}
 filevector ReaderConf::readfile(const char * filename)
 {
     filevector file;
@@ -53,12 +67,21 @@ filevector ReaderConf::readfile(const char * filename)
                                  (std::istreambuf_iterator<char>()));
     inputFile.close();
 
+    if (!checkfile(fileContents))
+    {
+        throw ErrorConfigFileExce();
+    }
     
     file = ReaderConf::split(fileContents, std::string(" \n\t"));
     return file;
 }
-
 const char	*ReaderConf::FileNotfoundException::what() const throw()
 {
 	return "Exception thrown: could not open configuration file";
 }
+const char * ReaderConf::ErrorConfigFileExce::what() const throw()
+{
+    return "error in Config file";
+}
+
+    

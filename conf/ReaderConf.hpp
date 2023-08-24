@@ -17,10 +17,18 @@ public:
 
     static filevector readfile(const char* filename);
     static filevector split(std::string str, std::string c);
+    static bool checkfile(std::string file);
     class FileNotfoundException: public std::exception
     {
         virtual const char * what() const throw();
     };
+    class ErrorConfigFileExce: public std::exception
+    {
+        virtual const char * what() const throw();
+    };
+
+    
+
 
 };
 

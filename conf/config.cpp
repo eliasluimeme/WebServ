@@ -46,13 +46,7 @@ int Config::parse(const char *filename)
     unsigned int filesize;
 
     file = ReaderConf::readfile(filename);
-
     filesize = file.size();
-    if (checkfile(file))
-    {
-        std::cerr << RED << "Error : error in config file ["<< filename <<"]" << std::endl;
-    }
-    
     for (unsigned int i = 0; i < filesize; i++)
     {
         if (file[i] == "server")
