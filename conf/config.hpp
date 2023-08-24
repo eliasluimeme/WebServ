@@ -8,10 +8,11 @@
 #include "ReaderConf.hpp"
 #include "ConfigServer.hpp"
 // #include "../request/Request.hpp"
-#include "RequestConfig.hpp"
+// #include "RequestConfig.hpp"
 
 class RequestConfiga;
-class Data;
+class Request;
+class confData;
 
 class Config
 {

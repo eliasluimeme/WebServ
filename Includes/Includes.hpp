@@ -38,5 +38,4 @@
 #include "../conf/HelperFunc.hpp"
 #include "../conf/ReaderConf.hpp"
 #include "../conf/StructData.hpp"
-#include "../conf/RequestConfig.hpp"
 #include "../conf/webserv.hpp"

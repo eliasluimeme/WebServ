@@ -201,9 +201,9 @@ bool Server::initServer() {
     return true;
 }
 
-void Server::startServer(Data &confData) {
+void Server::startServer(Data &data) {
     if (initServer())
-        setConfData(confData);
+        setConfData(data);
 
     timeout.tv_sec = 10;
     timeout.tv_usec = 0;
