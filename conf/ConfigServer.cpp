@@ -247,8 +247,8 @@ void ConfigServer::addlisten(std::vector<std::string> args)
     {
         if (isDigits(args[0]))
         {
-            listen.host = 0;
-            listen.port = atoi(args[0].c_str());
+            listen.host = "";
+            listen.port = args[0].c_str();
             for (std::vector<t_listen>::const_iterator it  = _listen.begin(); it != _listen.end(); it++)
             {
                 if (it->port == listen.port)
@@ -261,12 +261,12 @@ void ConfigServer::addlisten(std::vector<std::string> args)
     }
     else
     {
-        listen.host = strToIp(args[0].substr(0, sep));
+        listen.host = args[0].substr(0, sep);
         sep++;
         std::string portstr = args[0].substr(sep);
         if (isDigits(portstr))
         {
-            listen.port = atoi(portstr.c_str());
+            listen.port = portstr.c_str();
             this->_listen.push_back(listen);
             return ;
         }

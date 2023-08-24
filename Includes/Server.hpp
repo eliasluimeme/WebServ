@@ -2,11 +2,10 @@
 
 #include "../Includes/Includes.hpp"
 
-#define BUFFER_SIZE 10000
-#define MAX_CLIENTS 10
+#define BUFFER_SIZE 100000
+#define MAX_CLIENTS 20
 #define TIMEOUT 5.0
 
-class ConfData;
 class Response;
 class Client;
 class Request;
@@ -15,6 +14,7 @@ struct Servers {
     std::string ipAdress;
     int port;
     int serverSocket;
+    Data serverData;
     struct sockaddr_in serverAddr;
     std::vector<Client> clientSockets;
 };
@@ -23,9 +23,8 @@ class Server {
     public:
         Server();
         ~Server();
-        void startServer(Data &);
-        bool initServer();
-        void setConfData(Data &);
+        void startServers(std::vector<Data> &);
+        bool initServers(std::vector<Data> &);
         void closeServer();
         void acceptConnection(Servers &);
         void handleRequest(Servers &,int &);
@@ -47,14 +46,8 @@ class Server {
         struct timeval timeout;
         std::string ipAdress;
         int port, maxFd;
-        // int serverSocket, clientSocket;
-        struct sockaddr_in clientAddr;
         std::vector<Servers> servers;
-        // std::vector<Client> clientSockets;
         std::string method, uri, http, query, delimiter, responseMsg;
         int toRead, readed;
         bool header, received, endHeader;
 };
-
-// TO DO
-// Multi servers

@@ -65,7 +65,7 @@ void Request::processChunked(Client &client, std::string &filename) {
                 chunks.erase(0, client.left);
                 client.readed += body.size();
                 client.left -= body.size();
-                std::cout << "Left: " << client.left << std::endl;
+                // std::cout << "Left: " << client.left << std::endl;
                 file.write(body.c_str(), body.size());
                 if (client.left == 0 && chunks.size()) {
                     if (chunks.find("\r\n") == 0)
@@ -84,7 +84,7 @@ void Request::processChunked(Client &client, std::string &filename) {
                     chunks.erase(0, 2);
             }
             if ((end = chunks.find("\r\n")) > 0) {
-                std::cout << "End: " << end << std::endl;
+                // std::cout << "End: " << end << std::endl;
                 subchunk = chunks.substr(0, end);
                 if (isHexa(subchunk)) {
                     client.chunkSize = strtol(subchunk.c_str(), NULL, 16);
@@ -180,9 +180,8 @@ void Request::parseRequest(Client &client) {
         client.readed += request.size();
     }
 
-    std::cout << "to read: " << client.toRead << " readed: " << client.readed << std::endl;
     if (client.readed >= client.toRead) {
-        log("------ Request body received ------\n");
+        log("------     Request body received     ------\n");
         client.received = true;
         file.close();
     }

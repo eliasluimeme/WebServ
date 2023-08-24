@@ -3,6 +3,7 @@
 #include "../Includes/Includes.hpp"
 
 class Client;
+
 class Request {
     public:
         Request();

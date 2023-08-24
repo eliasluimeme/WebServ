@@ -29,14 +29,9 @@ void Server::closeServer() {
 }
 
 void Server::cleanup() {
-    log("cleaning...");
     // if (file.is_open())
     //     file.close();
     endHeader = false;
-}
-
-void Server::setConfData(Data &confData) {
-    data = confData;
 }
 
 Data &Server::getConfData() {
@@ -99,8 +94,9 @@ void Server::sendResponse(Servers &server, int &clientFd) {
 }
 
 void Server::handleRequest(Servers &server, int &clientFd) {
-    log("------ Handling existing clients ------\n");
-    std::cout << "Client " << clientFd << std::endl << std::endl;
+    std::stringstream ss;
+    ss << clientFd;
+    log("------ Handling existing clients: " + ss.str() + " ------\n");
 
     std::string requestMsg;
     char buff[BUFFER_SIZE] = {0};
@@ -125,15 +121,17 @@ void Server::handleRequest(Servers &server, int &clientFd) {
         request.parseRequest(server.clientSockets[index]);
 
         if (server.clientSockets[index].received == true) {
+            std::cout << "to read: " << server.clientSockets[index].toRead << " readed: " << server.clientSockets[index].readed << std::endl;
+            log("------ Received Request from client: " + ss.str() + " ------\n\n");
             FD_CLR(clientFd, &readSetTmp);
             FD_SET(clientFd, &writeSetTmp);
-            log("------ Received Request from client ------\n\n");
         }
     }
 }
 
 void Server::acceptConnection(Servers &server) {
     Client client;
+    struct sockaddr_in clientAddr;
 
     memset(&clientAddr, 0, sizeof(clientAddr));
     unsigned int clientAddrLength = sizeof(clientAddr);
@@ -141,7 +139,7 @@ void Server::acceptConnection(Servers &server) {
     if (clientSocket < 0)
         exitWithError("Couldn't accept connection. Accept failed");
     
-    log("------ New Connection accepted ------\n");
+    log("------   New Connection accepted    ------\n");
 
     setNonBlocking(clientSocket);
     FD_SET(clientSocket, &readSetTmp);
@@ -149,28 +147,29 @@ void Server::acceptConnection(Servers &server) {
 
     client.setFd(clientSocket);
     client.setAddr(clientAddr);
-    // client.setConfData(data);
+    client.setConfData(server.serverData);
     server.clientSockets.push_back(client);
 }
 
-bool Server::initServer() {
+bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
+    // check ports
+    // if multiple servers listen on the same port check for server name
+    // define sensible default value when not found
     int i = 1;
-    int serverNum = 3;
+    int serverNum = serversData.size();
     Servers serv;
-
-    ipAdress = "127.0.0.1";
-    port = 8080;
 
     FD_ZERO(&readSet);
     FD_ZERO(&writeSet);
     for (int i = 0; i < serverNum; i++) {
-        serv.ipAdress = ipAdress;
-        serv.port = port + i;
+        std::map<std::string, std::string>::iterator listenTo = serversData[i].listen.begin();
+        serv.ipAdress = listenTo->first;
+        serv.port = atoi(listenTo->second.c_str());
 
         memset(&serv.serverAddr, 0, sizeof(serv.serverAddr));
         serv.serverAddr.sin_family = AF_INET;
         serv.serverAddr.sin_port = htons(serv.port);
-        serv.serverAddr.sin_addr.s_addr = inet_addr(ipAdress.c_str());
+        serv.serverAddr.sin_addr.s_addr = inet_addr(serv.ipAdress.c_str());
 
         serv.serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serv.serverSocket < 0)
@@ -189,6 +188,7 @@ bool Server::initServer() {
         if (listen(serv.serverSocket, MAX_CLIENTS) < 0)
             exitWithError("Couldn't listen to socket");
 
+        serv.serverData = serversData[i];
         servers.push_back(serv);
 
         std::ostringstream ss;
@@ -201,9 +201,8 @@ bool Server::initServer() {
     return true;
 }
 
-void Server::startServer(Data &data) {
-    if (initServer())
-        setConfData(data);
+void Server::startServers(std::vector<Data> &serversData) {
+    initServers(serversData);
 
     timeout.tv_sec = 10;
     timeout.tv_usec = 0;

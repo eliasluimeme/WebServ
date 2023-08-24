@@ -10,7 +10,6 @@ void Response::buildResponse(Client &cl, std::string &filename, std::string &msg
     file.open(filename.c_str(), std::ios::in | std::ios::out);
 
     if (file.is_open()) {
-        std::cout << "Reading from response file... " << std::endl;
         std::string line;
         // while (getline(file, line))
         //     std::cout << line << std::endl;
