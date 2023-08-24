@@ -24,13 +24,34 @@ std::vector<ConfigServer> Config::getServer() const
     return this->_server;
 }
 
+// bool Config::checkfile(filevector file)
+// {
+//     size_t comma;
+//     for ( filevector::iterator i = file.begin() ;i < file.end(); i++)
+//     {
+//         if (i->data() == "server" || i->data() == "{")
+//         {
+            
+//         }
+        
+//         if (comma = i->find(";") == std::string::npos)
+//             return false;
+//     }
+//     return true;
+// }
+
 int Config::parse(const char *filename)
 {
     filevector file;
     unsigned int filesize;
 
     file = ReaderConf::readfile(filename);
+
     filesize = file.size();
+    if (checkfile(file))
+    {
+        std::cerr << RED << "Error : error in config file ["<< filename <<"]" << std::endl;
+    }
     
     for (unsigned int i = 0; i < filesize; i++)
     {
@@ -58,6 +79,7 @@ int Config::parse(const char *filename)
         }   
     }
     std::cout << this->_server[0] << '\n';  
+    exit(1);
 
     return 0;
 }

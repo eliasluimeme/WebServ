@@ -44,30 +44,21 @@ filevector ReaderConf::split(std::string str, std::string c)
 
 filevector ReaderConf::readfile(const char * filename)
 {
-    int  ret = READER_BUFFER_SIZE;
-    char buffer[READER_BUFFER_SIZE + 1];
-    std::string line = "";
-    int fd;
     filevector file;
+    std::ifstream inputFile(filename); 
 
-    for (size_t i = 0; i < READER_BUFFER_SIZE + 1; i++)
-        buffer[i] = '\0';
-    if ((fd = open(filename, O_RDONLY)) <= 0)
+    if (!(inputFile.is_open()))
         throw ReaderConf::FileNotfoundException();
-    for (ret = READER_BUFFER_SIZE; ret > 0; ret = read(fd, buffer, READER_BUFFER_SIZE))
-    {
-        buffer[ret] = '\0';
-        line += buffer;
-    }
-    if (ret == -1)
-    {
-        std::cerr << RED << "error while reading config file" << std::endl;
-        return file;
-    }
-    file = ReaderConf::split(line, std::string(" \n\t"));
+    std::string fileContents((std::istreambuf_iterator<char>(inputFile)),
+                                 (std::istreambuf_iterator<char>()));
+    inputFile.close();
+
+    
+    file = ReaderConf::split(fileContents, std::string(" \n\t"));
     return file;
 }
 
-const char	*ReaderConf::FileNotfoundException::what() const throw(){
+const char	*ReaderConf::FileNotfoundException::what() const throw()
+{
 	return "Exception thrown: could not open configuration file";
 }

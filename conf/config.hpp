@@ -16,10 +16,12 @@ private:
     bool    getServerforRequest(ConfigServer &conf, t_listen const address, std::string const hostname)const;
     std::vector<ConfigServer> _server; 
 public:
-    Config(std::string defaultserverPath = DEFAULT_CONFIG);
+    Config(){}
+    Config(std::string defaultserverPath);
     virtual ~Config(); 
     int parse(const char* filename);
     std::vector<ConfigServer> getServer() const;
+    bool checkfile(filevector file);
     // RequestConfiga   getConfigForRequest(t_listen const adress, std::string const uri, std::string hostname, const std::string &methodt) const;
     // RequestConfiga messi();
     std::vector<t_listen> getAllListen() const;
