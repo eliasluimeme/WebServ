@@ -89,4 +89,5 @@ int main(int ac, char **av) {
 
 
 // TODO FOR SERVER
-// timeout 408 504
+// retest for errors in headers and requested data
+// implement timeout 408 504

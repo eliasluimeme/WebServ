@@ -122,6 +122,8 @@ void Request::parseRequest(Client &client) {
         if (std::getline(iss, line)) {
             std::istringstream is(line);
             is >> method >> uri >> http;
+            if (!is.eof())
+                exitWithError("Bad request"); // 400 Bad Request
             if (method.compare("GET") && method.compare("POST") && method.compare("DELETE"))
                 exitWithError("Bad request"); // 400 Bad Request
             if (uri.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%") != std::string::npos)
@@ -131,6 +133,7 @@ void Request::parseRequest(Client &client) {
             if (uri.find("?") != std::string::npos)
                 query = uri.substr(uri.find("?") + 1, uri.size() - uri.find("?"));
         } else exitWithError("Bad request"); // 400 Bad Request
+
         while (std::getline(iss, line)) {
             if (line.compare("\r") == 0) {
                 client.header = true;
@@ -144,8 +147,8 @@ void Request::parseRequest(Client &client) {
                 else exitWithError("Bad request"); // 400 Bad Request
             }
         }
-        client.setHeaders(headers);
         setEncoding(client, encoding);
+        client.setHeaders(headers);
         client.setEncoding(encoding);
         if (headers.find("Content-Length") != headers.end())
             client.toRead = atoi(headers["Content-Length"].c_str());

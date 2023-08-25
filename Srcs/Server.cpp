@@ -101,6 +101,12 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     std::string requestMsg;
     char buff[BUFFER_SIZE] = {0};
     int index = findClientIndex(server, clientFd);
+    timeout.tv_sec = REQUEST_TIMEOUT;
+    timeout.tv_usec = 0;
+
+    std::time_t currTime = std::time(NULL);
+    if (server.clientSockets[index].startTime.tv_sec == 0)
+        server.clientSockets[index].startTime.tv_sec = static_cast<time_t>(currTime);
 
     size_t bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
     std::stringstream fd;
@@ -116,6 +122,11 @@ void Server::handleRequest(Servers &server, int &clientFd) {
         close(clientFd);
     } else {
         Request request;
+        struct timeval currentTime;
+        currentTime.tv_sec = static_cast<time_t>(currTime);
+        if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
+            exitWithError("Request timeout...");
+        
         requestMsg = std::string(buff, bytesRead);
         server.clientSockets[index].setRequest(requestMsg);
         request.parseRequest(server.clientSockets[index]);
@@ -203,9 +214,6 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
 
 void Server::startServers(std::vector<Data> &serversData) {
     initServers(serversData);
-
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
 
     // std::ofstream outputFile("output.txt");
     // // Store the current state of std::cout

@@ -8,6 +8,7 @@ Client::Client() {
     toRead = 0;
     readed = 0;
     left = 0;
+    startTime.tv_sec = 0;
 }
 
 Client& Client::operator=(const Client &cl) {

@@ -48,6 +48,7 @@ class Client {
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
         std::string leftInChunk;
+        struct timeval timeout, startTime;
 
     private:
         Data data; // assign
