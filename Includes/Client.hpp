@@ -21,8 +21,6 @@ class Client {
         void setAddr(struct sockaddr_in &);
         void cleanup();
         sockaddr_in &getAddr();
-        void setAddrLen(int);
-        size_t getAddrLen();
         void setHeaders(std::map<std::string, std::string> &);
         std::map<std::string, std::string> &getHeaders();
         void setHeaderValue(std::string &, std::string &);
@@ -48,7 +46,7 @@ class Client {
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
         std::string leftInChunk;
-        struct timeval timeout, startTime;
+        struct timeval startTime, reqTimeout, cgiTimeout;
 
     private:
         Data data; // assign

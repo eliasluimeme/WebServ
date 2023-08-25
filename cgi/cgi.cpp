@@ -1,62 +1,62 @@
-#include "../methods/http_response.hpp"
+// #include "../Includes/Includes.hpp"
 
-char **setVaribels(std::map<std::string, std::string> reqHeader)
-{
-	if (reqHeader.find("Content-Type:") == reqHeader.end())
-	{
-		std::pair<std::string, std::string> p("Content-Type:", "");
-		reqHeader.insert(p);
-	}
-	if (reqHeader.find("Content-Length:") == reqHeader.end())
-	{
-		std::pair<std::string, std::string> p("Content-Length:", "0");
-		reqHeader.insert(p);
-	}
-	if (reqHeader.find("Cookie:") == reqHeader.end())
-	{
-		std::pair<std::string, std::string> p("Cookie:", "");
-		reqHeader.insert(p);
-	}
-	if (reqHeader.find("Request-Method:") == reqHeader.end())
-	{
-		std::pair<std::string, std::string> p("Request-Method:", "");
-		reqHeader.insert(p);
-	}
-	if (reqHeader.find("Redirect-Status:") == reqHeader.end())
-	{
-		std::pair<std::string, std::string> p("Redirect-Status:", "CGI");
-		reqHeader.insert(p);
-	}
+// char **setVaribels(std::map<std::string, std::string> reqHeader)
+// {
+// 	if (reqHeader.find("Content-Type:") == reqHeader.end())
+// 	{
+// 		std::pair<std::string, std::string> p("Content-Type:", "");
+// 		reqHeader.insert(p);
+// 	}
+// 	if (reqHeader.find("Content-Length:") == reqHeader.end())
+// 	{
+// 		std::pair<std::string, std::string> p("Content-Length:", "0");
+// 		reqHeader.insert(p);
+// 	}
+// 	if (reqHeader.find("Cookie:") == reqHeader.end())
+// 	{
+// 		std::pair<std::string, std::string> p("Cookie:", "");
+// 		reqHeader.insert(p);
+// 	}
+// 	if (reqHeader.find("Request-Method:") == reqHeader.end())
+// 	{
+// 		std::pair<std::string, std::string> p("Request-Method:", "");
+// 		reqHeader.insert(p);
+// 	}
+// 	if (reqHeader.find("Redirect-Status:") == reqHeader.end())
+// 	{
+// 		std::pair<std::string, std::string> p("Redirect-Status:", "CGI");
+// 		reqHeader.insert(p);
+// 	}
 
-	char **s;
-	s = new char *[9];
-	std::string s0 = "CONTENT_TYPE=" + (*reqHeader.find("Content-Type:")).second;
-	s[0] = strdup(const_cast<char *>(s0.c_str()));
-	std::string s1 = "REQUEST_METHOD=" + (*reqHeader.find("Request-Method:")).second;
-	s[1] = strdup(const_cast<char *>(s1.c_str()));
-	std::string s2 = "CONTENT_LENGTH=" + (*reqHeader.find("Content-Length:")).second;
-	s[2] = strdup(const_cast<char *>(s2.c_str()));
-	std::string s3;
-	if ((*reqHeader.find("Query-String:")).second.size())
-		s3 = "QUERY_STRING=" + (*reqHeader.find("Query-String:")).second.substr(1, (*reqHeader.find("Query-String:")).second.size());
-	s[3] = strdup(const_cast<char *>(s3.c_str()));
-	std::string s4 = "HTTP_COOKIE=" + (*reqHeader.find("Cookie:")).second;
-	s[4] = strdup(const_cast<char *>(s4.c_str()));
-	std::string s5 = "REDIRECT_STATUS=" + (*reqHeader.find("Redirect-Status:")).second;
-	s[5] = strdup(const_cast<char *>(s5.c_str()));
-	std::string s6 = "SCRIPT_NAME=" + (*reqHeader.find("File_Name:")).second;
-	s[6] = strdup(const_cast<char *>(s6.c_str()));
-	std::string s7 = "SCRIPT_FILENAME=" + (*reqHeader.find("File_Name:")).second;
-	s[7] = strdup(const_cast<char *>(s7.c_str()));
-	s[8] = NULL;
-	return s;
-}
+// 	char **s;
+// 	s = new char *[9];
+// 	std::string s0 = "CONTENT_TYPE=" + (*reqHeader.find("Content-Type:")).second;
+// 	s[0] = strdup(const_cast<char *>(s0.c_str()));
+// 	std::string s1 = "REQUEST_METHOD=" + (*reqHeader.find("Request-Method:")).second;
+// 	s[1] = strdup(const_cast<char *>(s1.c_str()));
+// 	std::string s2 = "CONTENT_LENGTH=" + (*reqHeader.find("Content-Length:")).second;
+// 	s[2] = strdup(const_cast<char *>(s2.c_str()));
+// 	std::string s3;
+// 	if ((*reqHeader.find("Query-String:")).second.size())
+// 		s3 = "QUERY_STRING=" + (*reqHeader.find("Query-String:")).second.substr(1, (*reqHeader.find("Query-String:")).second.size());
+// 	s[3] = strdup(const_cast<char *>(s3.c_str()));
+// 	std::string s4 = "HTTP_COOKIE=" + (*reqHeader.find("Cookie:")).second;
+// 	s[4] = strdup(const_cast<char *>(s4.c_str()));
+// 	std::string s5 = "REDIRECT_STATUS=" + (*reqHeader.find("Redirect-Status:")).second;
+// 	s[5] = strdup(const_cast<char *>(s5.c_str()));
+// 	std::string s6 = "SCRIPT_NAME=" + (*reqHeader.find("File_Name:")).second;
+// 	s[6] = strdup(const_cast<char *>(s6.c_str()));
+// 	std::string s7 = "SCRIPT_FILENAME=" + (*reqHeader.find("File_Name:")).second;
+// 	s[7] = strdup(const_cast<char *>(s7.c_str()));
+// 	s[8] = NULL;
+// 	return s;
+// }
 
 void    exec(std::map<std::string, std::string> reqHeader){
 	char* argv[] = {const_cast<char *>((*reqHeader.find("Program_Name:")).second.c_str()),const_cast<char *>((*reqHeader.find("File_Name:")).second.c_str()), NULL};
 	char **env;
 	std::cout << "Program name " << argv[0] << "file name " << argv[1] << std::endl;
-	env = setVaribels(reqHeader);
+	// env = setVaribels(reqHeader);
 	std::cerr << env[4] << std::endl;
 	execve(argv[0], argv, env);
 }

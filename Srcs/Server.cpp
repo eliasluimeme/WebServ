@@ -28,7 +28,7 @@ void Server::closeServer() {
     // exit(EXIT_FAILURE);
 }
 
-void Server::cleanup() {
+void Server::cleanup() { // reset
     // if (file.is_open())
     //     file.close();
     endHeader = false;
@@ -72,7 +72,7 @@ void Server::sendResponse(Servers &server, int &clientFd) {
     ss << server.clientSockets[index].getFd();
     fileName << "request-" << ss.str();
     std::string name(fileName.str());
-    response.buildResponse(server.clientSockets[index], server.serverData, name, responseMsg); // TODO send from response
+    response.buildResponse(server.clientSockets[index], server.serverData, name); // TODO send from response
 
     size_t bytesSent;
     bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
@@ -101,12 +101,10 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     std::string requestMsg;
     char buff[BUFFER_SIZE] = {0};
     int index = findClientIndex(server, clientFd);
-    timeout.tv_sec = REQUEST_TIMEOUT;
-    timeout.tv_usec = 0;
 
-    std::time_t currTime = std::time(NULL);
+    std::time_t time = std::time(NULL);
     if (server.clientSockets[index].startTime.tv_sec == 0)
-        server.clientSockets[index].startTime.tv_sec = static_cast<time_t>(currTime);
+        server.clientSockets[index].startTime.tv_sec = static_cast<time_t>(time);
 
     size_t bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
     std::stringstream fd;
@@ -115,7 +113,7 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     if (bytesRead <= 0) {
         if (bytesRead == 0)
             log("------ Connection closed -------\n\n");
-        else log("[-] Couldn't read from socket " + fd.str());
+        else exitWithError("[-] Couldn't read from socket " + fd.str());
 
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &readSetTmp);
@@ -123,7 +121,7 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     } else {
         Request request;
         struct timeval currentTime;
-        currentTime.tv_sec = static_cast<time_t>(currTime);
+        currentTime.tv_sec = static_cast<time_t>(time);
         if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
             exitWithError("Request timeout...");
         

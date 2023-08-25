@@ -9,7 +9,8 @@ class Response {
         Response();
         ~Response();
     
-        void buildResponse(Client &, Data &, std::string &,std::string &);
+        void buildResponse(Client &, Data &, std::string &);
+        bool sendResponse(int , std::string &);
     
     private:
         Client client;

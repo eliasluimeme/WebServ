@@ -32,6 +32,7 @@
 #include "../Includes/Client.hpp"
 #include "../Includes/Request.hpp"
 #include "../Includes/Response.hpp"
+#include "../Includes/CGI.hpp"
 
 #include "../conf/config.hpp"
 #include "../conf/ConfigServer.hpp"

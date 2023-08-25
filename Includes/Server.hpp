@@ -4,6 +4,7 @@
 
 #define BUFFER_SIZE 10000
 #define REQUEST_TIMEOUT 2
+#define CGI_TIMEOUT 2
 #define RESPONSE_TIMEOUT 30
 #define MAX_CLIENTS 20
 

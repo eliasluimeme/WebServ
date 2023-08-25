@@ -18,5 +18,6 @@ class Request {
 
     private:
         std::string method, uri, http, query, delimiter, tmp;
+        
         int re;
 };
