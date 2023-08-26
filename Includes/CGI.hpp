@@ -10,8 +10,10 @@ class CGI {
         CGI();
         ~CGI();
 
-        void start(Client &client, Data &serverData, std::string &filename);
+        void start(Client &, Data &, std::string &);
+        void getEnv(Client &);
+        std::string toUpper(std::string);
 
     private:
-
+        char **env;
 }; 

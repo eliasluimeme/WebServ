@@ -62,17 +62,84 @@ void Server::buildResponse() {
     responseMsg = ss.str();
 }
 
+void sendVideoChunk(int clientSocket, const std::string& chunkData, int chunkNumber) {
+    std::ostringstream response;
+    response << "HTTP/1.1 200 OK\r\n";
+    response << "Content-Type: video/mp4\r\n";
+    response << "Content-Length: " << chunkData.size() << "\r\n";
+    response << "Content-Range: bytes " << chunkNumber * CHUNK_SIZE << "-" << (chunkNumber + 1) * CHUNK_SIZE - 1 << "/*\r\n\r\n";
+
+    // Send the HTTP response header
+    send(clientSocket, response.str().c_str(), response.str().size(), 0);
+
+    // Send the chunk data
+    send(clientSocket, chunkData.c_str(), chunkData.size(), 0);
+}
+
+void Server::buildVideo(int clientSocket) {
+    std::ifstream videoFile("video1.mp4", std::ios::binary);
+
+    if (!videoFile.is_open()) {
+        std::cerr << "Failed to open video file." << std::endl;
+        return;
+    }
+
+    static int chunkNumber = 0;
+    std::vector<char> chunkData(CHUNK_SIZE);
+
+    // while (true) {
+        videoFile.read(chunkData.data(), CHUNK_SIZE);
+        int bytesRead = videoFile.gcount();
+
+        if (bytesRead == 0) {
+            std::cout << "response sent" << std::endl; // End of file
+        } // TODO check if file is sent befor closing the socket
+
+        // Send the current chunk
+        sendVideoChunk(clientSocket, std::string(chunkData.data(), bytesRead), chunkNumber);
+        chunkNumber++;
+    // }
+
+    videoFile.close();
+}
+
+void Server::buildImage(int clientSocket) {
+   std::ifstream imageFile("image1.jpg", std::ios::binary);
+
+    if (!imageFile.is_open()) {
+        std::cerr << "Failed to open image file." << std::endl;
+        return;
+    }
+
+    std::vector<char> imageData((std::istreambuf_iterator<char>(imageFile)), std::istreambuf_iterator<char>());
+
+    std::ostringstream response;
+    response << "HTTP/1.1 200 OK\r\n";
+    response << "Content-Type: image/jpeg\r\n";
+    response << "Content-Length: " << imageData.size() << "\r\n\r\n";
+
+    // Send the HTTP response header
+    send(clientSocket, response.str().c_str(), response.str().size(), 0);
+
+    // Send the image data
+    send(clientSocket, imageData.data(), imageData.size(), 0);
+
+    imageFile.close();
+}
+
 void Server::sendResponse(Servers &server, int &clientFd) {
     Response response;
     std::stringstream fileName;
     int index = findClientIndex(server, clientFd);
  
+    // buildImage(clientFd);
+    // buildVideo(clientFd);
     buildResponse();
     std::stringstream ss;
     ss << server.clientSockets[index].getFd();
     fileName << "request-" << ss.str();
-    std::string name(fileName.str());
-    response.buildResponse(server.clientSockets[index], server.serverData, name); // TODO send from response
+    // std::string name(fileName.str());
+    // response.buildResponse(server.clientSockets[index], server.serverData, name); // TODO send from response
 
     size_t bytesSent;
     bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
@@ -122,8 +189,8 @@ void Server::handleRequest(Servers &server, int &clientFd) {
         Request request;
         struct timeval currentTime;
         currentTime.tv_sec = static_cast<time_t>(time);
-        if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
-            exitWithError("Request timeout...");
+        // if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
+        //     exitWithError("Request timeout...");
         
         requestMsg = std::string(buff, bytesRead);
         server.clientSockets[index].setRequest(requestMsg);

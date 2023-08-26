@@ -122,8 +122,8 @@ void Request::parseRequest(Client &client) {
         if (std::getline(iss, line)) {
             std::istringstream is(line);
             is >> method >> uri >> http;
-            if (!is.eof())
-                exitWithError("Bad request"); // 400 Bad Request
+            // if (!is.eof())
+            //     exitWithError("Bad request.."); // 400 Bad Request
             if (method.compare("GET") && method.compare("POST") && method.compare("DELETE"))
                 exitWithError("Bad request"); // 400 Bad Request
             if (uri.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%") != std::string::npos)

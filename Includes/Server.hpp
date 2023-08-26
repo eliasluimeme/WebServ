@@ -7,6 +7,7 @@
 #define CGI_TIMEOUT 2
 #define RESPONSE_TIMEOUT 30
 #define MAX_CLIENTS 20
+#define CHUNK_SIZE 1024
 
 class Response;
 class Client;
@@ -31,6 +32,8 @@ class Server {
         void acceptConnection(Servers &);
         void handleRequest(Servers &,int &);
         void buildResponse();
+        void buildImage(int );
+        void buildVideo(int );
         void sendResponse(Servers &, int &);
         void setNonBlocking(int &);
         void exitWithError(std::string);
