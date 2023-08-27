@@ -22,41 +22,38 @@ void CGI::getEnv(Client &client) {
     std::map<std::string, std::string> headers = client.getHeaders();
     std::stringstream ss;
     std::vector<char*> ptr;
-    std::string str;
+    // std::string str;
 
-    ptr.push_back(const_cast<char*>(std::string("REQUEST_METHOD=" + client.getMethod()).c_str()));
-    ptr.push_back(const_cast<char*>(std::string("CONTENT_TYPE=" + headers["Content_type"]).c_str()));
+    ptr.push_back(strdup(std::string("REQUEST_METHOD=" + client.getMethod()).c_str()));
+    ptr.push_back(strdup(std::string("CONTENT_TYPE=" + headers["Content_type"]).c_str()));
     ss << client.toRead;
-    ptr.push_back(const_cast<char*>(std::string("CONTENT_LENGTH=" + ss.str()).c_str()));
-    ss.clear();
-    ptr.push_back(const_cast<char*>(std::string("QUERY_STRING=" + client.getQuery()).c_str()));
+    ptr.push_back(strdup(std::string("CONTENT_LENGTH=" + ss.str()).c_str()));
+    ss.str("");
+    ptr.push_back(strdup(std::string("QUERY_STRING=" + client.getQuery()).c_str()));
     ss << inet_ntoa(client.getAddr().sin_addr);
-    ptr.push_back(const_cast<char*>(std::string("REMOTE_ADDR=" + ss.str()).c_str()));
-    ss.clear();
-    ss << ntohs(client.getAddr().sin_port);
-    str = std::string("REMOTE_PORT=" + ss.str());
-    ptr.push_back(const_cast<char*>(str.c_str())); // AM HEEEEEEEEEEEEEERE!!
-    ss.clear();
-    str = std::string("REQUEST_URI =" + client.getURI());
-    ptr.push_back(const_cast<char*>(str.c_str()));
-    str = std::string("QUERY_STRING=" + client.getQuery());
-    ptr.push_back(const_cast<char*>(str.c_str()));
-    str = std::string("SCRIPT_NAME=" + client.getURI().substr(0, client.getURI().find("?")));
-    ptr.push_back(const_cast<char*>(str.c_str()));
+    ptr.push_back(strdup(std::string("REMOTE_ADDR=" + ss.str()).c_str()));
+    ss.str("");
+    uint16_t port = ntohs(client.getAddr().sin_port);
+    ss << port;
+    ptr.push_back(strdup(std::string("REMOTE_PORT=" + ss.str()).c_str()));
+    ss.str("");
+    ptr.push_back(strdup(std::string("REQUEST_URI =" + client.getURI()).c_str()));
+    ptr.push_back(strdup(std::string("QUERY_STRING=" + client.getQuery()).c_str()));
+    ptr.push_back(strdup(std::string("SCRIPT_NAME=" + client.getURI().substr(0, client.getURI().find("?"))).c_str()));
 
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++) {
-        str = "HTTP_" + toUpper(it->first) + "=" + it->second;
-        ptr.push_back(const_cast<char*>(str.c_str()));
+        ptr.push_back(strdup(std::string("HTTP_" + toUpper(it->first) + "=" + it->second).c_str()));
     }
 
-    f << ptr.size();
-
     env = new char*[ptr.size() + 1];
-    env[ptr.size()] = NULL;
     for (size_t i = 0; i < ptr.size(); i++) {
         env[i] = ptr[i];
         f << env[i] << std::endl;
     }
+    env[ptr.size()] = NULL;
+
+    if (env == NULL)
+        perror("No env");
 
 }
 

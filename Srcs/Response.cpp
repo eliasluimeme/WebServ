@@ -22,8 +22,9 @@ void Response::buildResponse(Client &cl, Data &serverData, std::string &filename
     std::string uri = client.getURI();
     std::string cgiLocation = serverData.locations["/cgi-bin"].root;
     std::cout << "cgi location " << cgiLocation << std::endl;
-    // if (uri.find("/cgi-bin") >= 0)
-    //     cgi.start(client, serverData, filename);
+
+    if (uri.find("/cgi-bin") >= 0)
+        cgi.start(client, serverData, filename);
 
     if (file.is_open()) {
         std::string line;
@@ -34,6 +35,7 @@ void Response::buildResponse(Client &cl, Data &serverData, std::string &filename
         std::cout << "Can't open request file.." << std::endl;
         exit(EXIT_FAILURE);
     }
+
 
     std::string responseMsg;
     // sendResponse(client.getFd(), responseMsg);
