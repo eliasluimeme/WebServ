@@ -190,7 +190,7 @@ void Server::sendResponse(Servers &server, int &clientFd) {
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &writeSetTmp);
         close(clientFd);
-        exit(0);
+        // exit(0);
     }
 
     // delete file after sending response

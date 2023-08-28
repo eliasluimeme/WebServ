@@ -17,12 +17,11 @@ void CGI::getEnv(Client &client) {
     std::fstream f;
     f.open("test.txt", std::ios::in | std::ios::out | std::ios::app);
     if (!f.is_open())
-        exit(EXIT_FAILURE);
+        perror("cant open test file");
 
     std::map<std::string, std::string> headers = client.getHeaders();
     std::stringstream ss;
     std::vector<char*> ptr;
-    // std::string str;
 
     ptr.push_back(strdup(std::string("REQUEST_METHOD=" + client.getMethod()).c_str()));
     ptr.push_back(strdup(std::string("CONTENT_TYPE=" + headers["Content-Type"]).c_str()));
@@ -57,13 +56,14 @@ void CGI::getEnv(Client &client) {
 
 }
 
-void CGI::start(Client &client, Data &serverData, std::string &filename) {
+std::string CGI::start(Client &client, Data &serverData, std::string &filename) {
     int cgiInput[2];
     int cgiOutput[2];
 
     pipe(cgiInput);
     pipe(cgiOutput);
 
+    std::string response;
     pid_t pid = fork();
 	if (pid == -1)
 		perror("fork failed..");
@@ -76,8 +76,17 @@ void CGI::start(Client &client, Data &serverData, std::string &filename) {
         dup2(cgiOutput[1], STDOUT_FILENO);
 
         getEnv(client);
+        std::string interpreter;
+        if (client.getURI().find(".phy"))
+            interpreter = "/usr/bin/php";
+        else if (client.getURI().find(".py"))
+            interpreter = "/usr/bin/python3";
 
-        char *av[] = {const_cast<char*>("/usr/bin/php"), const_cast<char*>("./var/cgi-bin/simple.php"), NULL};
+        std::string scriptName(client.getURI().substr(0, client.getURI().find("?")));
+        if (scriptName.find(".") != 0)
+            scriptName = "." + scriptName;
+
+        char *av[] = {const_cast<char*>(interpreter.c_str()), const_cast<char*>(scriptName.c_str()), NULL};
 		execve(av[0], av, env);
         perror("execve failed");
         // delete[] env;
@@ -89,17 +98,15 @@ void CGI::start(Client &client, Data &serverData, std::string &filename) {
 
         char buff[4069];
         size_t bytesRead;
-        std::string response;
         struct timeval startTime;
         std::time_t time = std::time(NULL);
         startTime.tv_sec = static_cast<time_t>(time);
         while ((bytesRead = read(cgiOutput[0], buff, sizeof(buff))) > 0) {
-            std::cout << bytesRead << std::endl;
             if(startTime.tv_sec - std::time(NULL) >= CGI_TIMEOUT)
                 perror("cgi timeout..");
             response += std::string(buff, bytesRead);
         }
-        std::cout << response << std::endl;
+        // std::cout << response << std::endl;
 
         // Close input pipe
         close(cgiInput[1]);
@@ -120,4 +127,5 @@ void CGI::start(Client &client, Data &serverData, std::string &filename) {
         }
     }
 	kill(pid, SIGTERM);
+    return response;
 }

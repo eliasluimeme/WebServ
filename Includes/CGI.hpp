@@ -10,7 +10,7 @@ class CGI {
         CGI();
         ~CGI();
 
-        void start(Client &, Data &, std::string &);
+        std::string start(Client &, Data &, std::string &);
         void getEnv(Client &);
         std::string toUpper(std::string);
 
