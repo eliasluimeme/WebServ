@@ -9,6 +9,11 @@ Client::Client() {
     readed = 0;
     left = 0;
     startTime.tv_sec = 0;
+    send_headers = false;
+    responseSent = 0;
+    bytesSent = 0;
+    headerSent = false;
+    pos = 0;
 }
 
 Client& Client::operator=(const Client &cl) {
@@ -91,3 +96,23 @@ std::string &Client::getRequest() { return request; }
 void Client::setConfData(Data &confData) { data = confData; }
 
 Data &Client::getConfData() { return data; }
+
+void Client::setPos(std::streampos a)
+{
+    pos = a;
+}
+
+std::streampos& Client::getPos()
+{
+    return pos;
+}
+
+void Client::setSend(bool a)
+{
+    send_headers = a;
+}
+
+bool& Client::getSend()
+{
+    return send_headers;
+}

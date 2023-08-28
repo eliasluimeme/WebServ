@@ -4,6 +4,18 @@ Request::Request() {}
 
 Request::~Request() {}
 
+void    Request::ft_error(int status, int fd)
+{
+    std::map<int, std::string> error;
+
+    error[501] = "HTTP/1.1 501 Not Implemented Content-Type: text/html Content-Length: 72 Connection: keep-alive\r\n\r\n<html><body><center><h1>501 Not Implemented </h1></center></body></html>";
+    error[400] = "HTTP/1.1 400 Bad Request Content-Type: text/html Content-Length: 68 Connection: keep-alive\r\n\r\n<html><body><center><h1>400 Bad Request </h1></center></body></html>";
+    error[414] = "HTTP/1.1 414 Request-URI Too Long Content-Type: text/html Content-Length: 77 Connection: keep-alive\r\n\r\n<html><body><center><h1>414 Request-URI Too Long </h1></center></body></html>";
+    error[413] = "HTTP/1.1 413 Request Entity Too Large Content-Type: text/html Content-Length: 81 Connection: keep-alive\r\n\r\n<html><body><center><h1>413 Request Entity Too Large </h1></center></body></html>";
+    error[404] = "HTTP/1.1 404 NOT FOND Content-Type: text/html Content-Length: 66 Connection: keep-alive\r\n\r\n<html><body><center><h1>404 NOT FOUND </h1></center></body></html>";
+    write(fd, error[status].c_str(), strlen(error[status].c_str()));
+}
+
 void Request::log(std::string message) {
     std::cout << message << std::endl;
 }

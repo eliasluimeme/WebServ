@@ -42,7 +42,13 @@ class Client {
         void setConfData(Data &);
         Data &getConfData();
 
-        bool header, received;
+        void setPos(std::streampos );
+        std::streampos& getPos();
+        void setSend(bool );
+        bool &getSend();
+
+        bool header, received, responseSent, headerSent;
+        int bytesSent;
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
         std::string leftInChunk;
@@ -56,4 +62,6 @@ class Client {
         std::string request;
         std::map<std::string, std::string> headers;
 
+        std::streampos pos;
+        bool send_headers;
 };

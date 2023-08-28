@@ -170,25 +170,28 @@ void Server::sendResponse(Servers &server, int &clientFd) {
  
     // buildImage(clientFd);
     // buildVideo(clientFd);
-    buildResponse();
+    // buildResponse();
     std::stringstream ss;
     ss << server.clientSockets[index].getFd();
     fileName << "request-" << ss.str();
     std::string name(fileName.str());
-    response.buildResponse(server.clientSockets[index], server.serverData, name); // TODO send from response
 
-    size_t bytesSent;
-    bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
-    if (bytesSent >= responseMsg.size())
-        log("------ Response sent to client ------\n\n");
-    else
-        exitWithError("Error sending response to client");
-    
-    cleanup(); // TODO: clean resources
-    server.clientSockets[index].cleanup();
-    server.clientSockets.erase(server.clientSockets.begin() + index);
-    FD_CLR(clientFd, &writeSetTmp);
-    close(clientFd);
+    // size_t bytesSent;
+    // bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
+    // if (bytesSent >= responseMsg.size())
+    //     log("------ Response sent to client ------\n\n");
+    // else
+    //     exitWithError("Error sending response to client");
+    if (response.buildResponse(server.clientSockets[index], server.serverData, name) == true) // TODO send from response
+    {
+        std::cout << "cleanin..." << std::endl;
+        cleanup(); // TODO: clean resources
+        server.clientSockets[index].cleanup();
+        server.clientSockets.erase(server.clientSockets.begin() + index);
+        FD_CLR(clientFd, &writeSetTmp);
+        close(clientFd);
+        exit(0);
+    }
 
     // delete file after sending response
     // std::string s(fileName.str());

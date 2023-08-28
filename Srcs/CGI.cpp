@@ -25,7 +25,7 @@ void CGI::getEnv(Client &client) {
     // std::string str;
 
     ptr.push_back(strdup(std::string("REQUEST_METHOD=" + client.getMethod()).c_str()));
-    ptr.push_back(strdup(std::string("CONTENT_TYPE=" + headers["Content_type"]).c_str()));
+    ptr.push_back(strdup(std::string("CONTENT_TYPE=" + headers["Content-Type"]).c_str()));
     ss << client.toRead;
     ptr.push_back(strdup(std::string("CONTENT_LENGTH=" + ss.str()).c_str()));
     ss.str("");
@@ -33,9 +33,9 @@ void CGI::getEnv(Client &client) {
     ss << inet_ntoa(client.getAddr().sin_addr);
     ptr.push_back(strdup(std::string("REMOTE_ADDR=" + ss.str()).c_str()));
     ss.str("");
-    uint16_t port = ntohs(client.getAddr().sin_port);
-    ss << port;
-    ptr.push_back(strdup(std::string("REMOTE_PORT=" + ss.str()).c_str()));
+    // uint16_t port = ntohs(client.getAddr().sin_port);
+    // ss << port;
+    // ptr.push_back(strdup(std::string("REMOTE_PORT=" + ss.str()).c_str()));
     ss.str("");
     ptr.push_back(strdup(std::string("REQUEST_URI =" + client.getURI()).c_str()));
     ptr.push_back(strdup(std::string("QUERY_STRING=" + client.getQuery()).c_str()));
@@ -58,7 +58,6 @@ void CGI::getEnv(Client &client) {
 }
 
 void CGI::start(Client &client, Data &serverData, std::string &filename) {
-    char **av;
     int cgiInput[2];
     int cgiOutput[2];
 
@@ -69,17 +68,18 @@ void CGI::start(Client &client, Data &serverData, std::string &filename) {
 	if (pid == -1)
 		perror("fork failed..");
 	else if (pid == 0) {
-        close(cgiInput[1]);
-        close(cgiOutput[0]);
+        close(cgiInput[1]);  // Close write end of input pipe
+        close(cgiOutput[0]); // Close read end of output pipe
 
+        // Redirect standard input and output to the pipes
         dup2(cgiInput[0], STDIN_FILENO);
         dup2(cgiOutput[1], STDOUT_FILENO);
 
         getEnv(client);
 
-        // av[0] = "python-cgi";
-        // av[1] = "t.py";
-		// execve(av[0], av, getEnv(client));
+        char *av[] = {const_cast<char*>("/usr/bin/php"), const_cast<char*>("./var/cgi-bin/simple.php"), NULL};
+		execve(av[0], av, env);
+        perror("execve failed");
         // delete[] env;
 		exit(1);
 	}
@@ -93,13 +93,31 @@ void CGI::start(Client &client, Data &serverData, std::string &filename) {
         struct timeval startTime;
         std::time_t time = std::time(NULL);
         startTime.tv_sec = static_cast<time_t>(time);
-        while((bytesRead = read(cgiOutput[0], buff, sizeof(buff)) > 0)) {
+        while ((bytesRead = read(cgiOutput[0], buff, sizeof(buff))) > 0) {
+            std::cout << bytesRead << std::endl;
             if(startTime.tv_sec - std::time(NULL) >= CGI_TIMEOUT)
                 perror("cgi timeout..");
             response += std::string(buff, bytesRead);
         }
+        std::cout << response << std::endl;
 
-	    waitpid(pid, NULL, 0);
+        // Close input pipe
+        close(cgiInput[1]);
+
+        int status = 0;
+	    waitpid(pid, &status, 0);
+
+        close(cgiOutput[0]);
+
+        if (WIFEXITED(status)) {
+            // Child process exited normally
+            int exitCode = WEXITSTATUS(status);
+            std::cout << "Child process exited with code " << exitCode << std::endl;
+        } else if (WIFSIGNALED(status)) {
+            // Child process was terminated by a signal
+            int signalNumber = WTERMSIG(status);
+            std::cout << "Child process terminated by signal " << signalNumber << std::endl;
+        }
     }
 	kill(pid, SIGTERM);
 }

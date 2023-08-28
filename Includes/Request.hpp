@@ -16,6 +16,8 @@ class Request {
         void processChunked(Client &, std::string &);
         bool isHexa(std::string &);
 
+        void ft_error(int status, int fd);
+
     private:
         std::string method, uri, http, query, delimiter, tmp;
         
