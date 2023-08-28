@@ -42,17 +42,21 @@ class Client {
         void setConfData(Data &);
         Data &getConfData();
 
+        bool header, received;
+        int toRead, readed, chunkSize, left;
+        std::string encoding, delimiter;
+        std::string leftInChunk;
+        struct timeval startTime, reqTimeout, cgiTimeout;
+
+        // For Response
         void setPos(std::streampos );
         std::streampos& getPos();
         void setSend(bool );
         bool &getSend();
 
-        bool header, received, responseSent, headerSent;
-        int bytesSent;
-        int toRead, readed, chunkSize, left;
-        std::string encoding, delimiter;
-        std::string leftInChunk;
-        struct timeval startTime, reqTimeout, cgiTimeout;
+        bool responseSent, headerSent;
+        int bytesSent, offset, fileSize;
+
 
     private:
         Data data; // assign

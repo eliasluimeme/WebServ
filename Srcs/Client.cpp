@@ -13,6 +13,7 @@ Client::Client() {
     responseSent = 0;
     bytesSent = 0;
     headerSent = false;
+    offset = 0;
     pos = 0;
 }
 

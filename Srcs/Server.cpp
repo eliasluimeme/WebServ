@@ -292,8 +292,9 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
 
         // if (setsockopt(serverSocket, SOL_SOCKET, SO_NOSIGPIPE, (char *)&i, sizeof(i)) < 0)
             // exitWithError("Couldn't set SO_NOSIGPIPE");
+        int a = 1;
         signal(SIGPIPE, SIG_IGN);
-        if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&i, sizeof(i)) < 0)
+        if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(i)) < 0)
             exitWithError("Couldn't set SO_REUSEADDR");
         if (bind(serv.serverSocket, (struct sockaddr *)&serv.serverAddr, sizeof(serv.serverAddr)) < 0)
             exitWithError("Couldn't bind socket");

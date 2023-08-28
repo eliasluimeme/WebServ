@@ -14,5 +14,5 @@ class Response {
         bool    GetMethod(Client &);
     
     private:
-        Client client;
+        // Client client;
 };
