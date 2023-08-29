@@ -1,4 +1,4 @@
-#include "../Includes/Includes.hpp"
+#include "ConfigServer.hpp"
 
 //constructors
 
@@ -25,10 +25,10 @@ parseMap ConfigServer::_initServerMap()
     map["root"] = &ConfigServer::addRoot;
     map["server_name"] = &ConfigServer::addServerName;
     map["error_page"] = &ConfigServer::addErrorPage;
-    map["client_body_buffer_size"] = &ConfigServer::addclientbodybuffersize;
+    map["body_size"] = &ConfigServer::addclientbodybuffersize;
     map["cgi_param"] = &ConfigServer::addCgiparams;
     map["cgi_pass"] = &ConfigServer::addCgipass;
-    map["allow_methods"] = &ConfigServer::addAllowedmethod;
+    map["methods"] = &ConfigServer::addAllowedmethod;
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
     return map;
@@ -41,10 +41,10 @@ parseMap ConfigServer::_initLocationMap()
     parseMap  map;
     map["root"] = &ConfigServer::addRoot;
     map["error_page"] = &ConfigServer::addErrorPage;
-    map["client_body_buffer_size"] = &ConfigServer::addclientbodybuffersize;
+    map["body_size"] = &ConfigServer::addclientbodybuffersize;
     map["cgi_param"] = &ConfigServer::addCgiparams;
     map["cgi_pass"] = &ConfigServer::addCgipass;
-    map["allow_methods"] = &ConfigServer::addAllowedmethod;
+    map["methods"] = &ConfigServer::addAllowedmethod;
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
     map["alias"] = &ConfigServer::addAlias;
@@ -62,7 +62,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     file =  ReaderConf::readfile(filename);
     if (file.empty())
     {
-        std::cerr << "could not open default file at location nmm" << filename << std::endl;
+        std::cerr << RED << "could not open default file at location nmm" << filename << std::endl;
         throw ReaderConf::FileNotfoundException();
     }
     // exit(1);
@@ -76,7 +76,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     if (!server.parseServer(index, file))
     {
         
-        std::cerr << "invalid default config file" << std::endl;
+        std::cerr << RED << "invalid default config file" << std::endl;
         throw ConfigServer::InvalidArgumentsException();
     }
     ConfigServer::_defaultServer = server;
@@ -185,9 +185,6 @@ int     ConfigServer::parseLocation(unsigned int &index, filevector &file)
     std::string  directive = "";
 
     if (file[index++] != "{")
-                    (this->*ConfigServer::serverParsingMap[directive])(args);
-                    args.clear();
-                    directive = "";
         return 0;
     for ( ;index < file.size() && file[index] != "}"; index++)
     {
@@ -237,6 +234,7 @@ int     ConfigServer::parseLocation(unsigned int &index, filevector &file)
     return 0;
 }
 
+
 //AddMember funtion
 
 void ConfigServer::addlisten(std::vector<std::string> args)
@@ -244,18 +242,25 @@ void ConfigServer::addlisten(std::vector<std::string> args)
     t_listen listen;
     size_t sep;
 
+    // std::cout << args[0] << std::endl;
+    // exit(1);
     if (args.size() != 1)
+    {
         throw ConfigServer::InvalidArgumentsException();
+
+    }
     if ((sep = args[0].find(":")) == std::string::npos)
     {
         if (isDigits(args[0]))
         {
-            listen.host = 0;
+            listen.host = "0";
             listen.port = atoi(args[0].c_str());
             for (std::vector<t_listen>::const_iterator it  = _listen.begin(); it != _listen.end(); it++)
             {
                 if (it->port == listen.port)
+                {
                     throw ConfigServer::InvalidArgumentsException();
+                }
             }
             this->_listen.push_back(listen);
             return;
@@ -264,7 +269,7 @@ void ConfigServer::addlisten(std::vector<std::string> args)
     }
     else
     {
-        listen.host = strToIp(args[0].substr(0, sep));
+        listen.host = args[0].substr(0, sep);
         sep++;
         std::string portstr = args[0].substr(sep);
         if (isDigits(portstr))
@@ -279,18 +284,20 @@ void ConfigServer::addlisten(std::vector<std::string> args)
 
 void ConfigServer::addRoot(std::vector<std::string> args)
 {
+    size_t sep;
     if (args.size() != 1 || this->_root != "")
         throw ConfigServer::InvalidArgumentsException();
-        
-    this->_root = args[0];
+    sep = args[0].find(";");
+    this->_root = args[0].substr(0, sep);
 }
 
 void ConfigServer::addServerName(std::vector<std::string> args)
 {
     if(args.size() == 0)
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");    
     for (unsigned int i = 0; i < args.size(); i++)
-        this->_server_name.push_back(args[i]);
+        this->_server_name.push_back(args[i].substr(0, sep));
 }
 
 void    ConfigServer::addErrorPage(std::vector<std::string> args)
@@ -334,7 +341,8 @@ void ConfigServer::addCgipass(std::vector<std::string> args)
 {
     if (args.size() != 1)
         throw ConfigServer::InvalidArgumentsException();
-    this->_cgi_pass = args[0];
+    size_t sep = args[0].find(";");    
+    this->_cgi_pass = args[0].substr(0, sep);
 }
 void ConfigServer::addAllowedmethod(std::vector<std::string> args)
 {
@@ -342,20 +350,28 @@ void ConfigServer::addAllowedmethod(std::vector<std::string> args)
         throw ConfigServer::InvalidArgumentsException();
     this->_allowed_methods.clear();
     for (filevector::iterator i = args.begin(); i < args.end(); i++)
-        this->_allowed_methods.insert(*i);
+    {
+        size_t sep = i->find(";");
+        this->_allowed_methods.insert(i->substr(0, sep));
+    }
 }
 
 void ConfigServer::addIndex(std::vector<std::string> args)
 {
     if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
     this->_index.insert(this->_index.end(), args.begin(), args.end());
 }
 
 void    ConfigServer::addAlias(std::vector<std::string> args)
 {
     if (args.size() > 1)
+    {
+        std::cout << "messi" << std::endl;
         throw ConfigServer::InvalidArgumentsException();
+    }
     if (args.size())
         this->_alias = args[0];
     this->_aliasSet = true;
@@ -435,9 +451,9 @@ std::string ConfigServer::getalias() const
     return this->_alias;
 }
 
-bool ConfigServer::getaliasSet() const 
+bool ConfigServer::getaliasSet() const
 {
-    return this->_aliasSet;   
+    return this->_aliasSet;
 }
 ConfigServer & ConfigServer::getDefaultServer()
 {
@@ -496,12 +512,12 @@ std::ostream	&operator<<(std::ostream &out, const ConfigServer &server) {
 	for (std::map<int, std::string>::const_iterator i = server._error_page.begin(); i != server._error_page.end(); i++) {
 		out << "\t" << i->first << " " << i->second << std::endl;
 	}
-	out << "client_body_buffer_size: " << server._client_body_buffer_size << std::endl;
+	out << "body_size: " << server._client_body_buffer_size << std::endl;
 	out << "cgi_param:" << std::endl;
 	for (std::map<std::string, std::string>::const_iterator i = server._cgi_param.begin(); i != server._cgi_param.end(); i++)
 		out << "\t" << i->first << " = " << i->second << std::endl;
 	out << "cgi_pass:	" << server._cgi_pass << std::endl;
-	out << "allowed methods: ";
+	out << "methods: ";
 	for (std::set<std::string>::iterator i = server._allowed_methods.begin(); i != server._allowed_methods.end(); i++)
 		out << " " << *i;
 	out << std::endl;
