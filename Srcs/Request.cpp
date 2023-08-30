@@ -4,16 +4,39 @@ Request::Request() {}
 
 Request::~Request() {}
 
-void    Request::ft_error(int status, int fd)
-{
-    std::map<int, std::string> error;
+int Request::findClientIndex(std::vector<Client> &clientSockets, int &clientSock) {
+    int index = 0;
+    for (std::vector<Client>::iterator it = clientSockets.begin(); it != clientSockets.end(); it++) {
+        if (it->getFd() == clientSock)
+            return index;
+        index++;
+    }
+    exitWithError("Client not found");
+    return -1;
+}
 
-    error[501] = "HTTP/1.1 501 Not Implemented Content-Type: text/html Content-Length: 72 Connection: keep-alive\r\n\r\n<html><body><center><h1>501 Not Implemented </h1></center></body></html>";
-    error[400] = "HTTP/1.1 400 Bad Request Content-Type: text/html Content-Length: 68 Connection: keep-alive\r\n\r\n<html><body><center><h1>400 Bad Request </h1></center></body></html>";
-    error[414] = "HTTP/1.1 414 Request-URI Too Long Content-Type: text/html Content-Length: 77 Connection: keep-alive\r\n\r\n<html><body><center><h1>414 Request-URI Too Long </h1></center></body></html>";
-    error[413] = "HTTP/1.1 413 Request Entity Too Large Content-Type: text/html Content-Length: 81 Connection: keep-alive\r\n\r\n<html><body><center><h1>413 Request Entity Too Large </h1></center></body></html>";
-    error[404] = "HTTP/1.1 404 NOT FOND Content-Type: text/html Content-Length: 66 Connection: keep-alive\r\n\r\n<html><body><center><h1>404 NOT FOUND </h1></center></body></html>";
-    write(fd, error[status].c_str(), strlen(error[status].c_str()));
+void Request::reset(Client &client) {
+    // int index = findClientIndex(clientSockets, fd);
+    // clientSockets[index].cleanup();
+    // clientSockets.erase(clientSockets.begin() + index);
+    // FD_CLR(fd, &readSetTmp);
+    // close(fd);
+    client.state = CLEAR;
+}
+
+bool Request::ft_error(int status, Client &client) {
+    std::cout << "Error in request sent. Cleaning.." << std::endl;
+    std::map<int, std::string> error;
+    error[501] = "HTTP/1.1 501 Not Implemented\r\nContent-Type: text/html\r\nContent-Length: 72\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>501 Not Implemented </h1></center></body></html>\r\n";
+    error[400] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length: 68\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>400 Bad Request </h1></center></body></html>\r\n";
+    error[408] = "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/html\r\nContent-Length: 72\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>408 Request Timeout </h1></center></body></html>\r\n";
+    error[414] = "HTTP/1.1 414 Request-URI Too Long\r\nContent-Type: text/html\r\nContent-Length: 77\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>414 Request-URI Too Long </h1></center></body></html>\r\n";
+    error[413] = "HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/html\r\nContent-Length: 81\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>413 Request Entity Too Large </h1></center></body></html>\r\n";
+    error[404] = "HTTP/1.1 404 NOT FOND\r\nContent-Type: text/html\r\nContent-Length: 66\r\nConnection: keep-alive\r\n\r\n<html><body><center><h1>404 NOT FOUND </h1></center></body></html>\r\n";
+    write(client.getFd(), error[status].c_str(), strlen(error[status].c_str()));
+
+    reset(client);
+    return false;
 }
 
 void Request::log(std::string message) {
@@ -23,28 +46,29 @@ void Request::log(std::string message) {
 void Request::exitWithError(const std::string error) {
     std::cerr << "[-] Error: " << error << std::endl;
     // cleanup();
-    // closeServer();
+    // closeServers();
     exit(EXIT_FAILURE);
 }
 
-void Request::setEncoding(Client &client, std::string &encoding) {
+bool Request::setEncoding(Client &client, std::string &encoding, std::vector<Client> &clientSockets) {
+    if (client.getHeaders().find("Content-Length") != client.getHeaders().end()) {
+        encoding = "length";
+        client.toRead = atoi(client.getHeaders()["Content-Length"].c_str()); // check atoi
+        std::cout << "To read " << client.toRead << std::endl;
+    }
     if (client.getHeaders().find("Transfer-Encoding") != client.getHeaders().end()) {
         if (client.getHeaders()["Transfer-Encoding"] == "chunked")
             encoding = "chunked";
-        else exitWithError("Invalid Transfer-Encoding"); // 501 Not Implemented
+        else return ft_error(501, client);
     }
-    else if (client.getHeaders().find("Content-Type") != client.getHeaders().end() && client.getHeaders()["Content-Type"].find("multipart/form-data;") != std::string::npos) {
-        std::string val = client.getHeaders()["Content-Type"];
-        delimiter = val.substr(val.find("=") + 1, val.size() - val.find("="));
-        client.setDelimiter(delimiter);
-        encoding = "multipart";
+    if (client.getHeaders().find("Content-Type") != client.getHeaders().end() && client.getHeaders()["Content-Type"].find("multipart/form-data;") != std::string::npos)
+        return ft_error(501, client);
+    if (method == "POST") {
+        if (encoding != "chunked" && encoding != "length")
+            return ft_error(400, client);
     }
-    else if (client.getHeaders().find("Content-Length") != client.getHeaders().end())
-        encoding = "length";
-    else if (method == "POST") {
-        if (encoding != "chunked" && encoding != "length" && encoding != "multipart")
-            exitWithError("Invalid encoding"); // 400 Bad Request
-    }
+    client.setEncoding(encoding);
+    return true;
 }
 
 bool Request::isHexa(std::string &str) {
@@ -55,8 +79,7 @@ bool Request::isHexa(std::string &str) {
     return true;
 }
 
-void Request::processChunked(Client &client, std::string &filename) {
-    std::string chunks = client.getRequest();
+void Request::processChunked(Client &client, std::string &filename, std::string &chunks) {
 	std::string	body = "";
 	std::string	subchunk = "";
 	size_t		i = 0;
@@ -64,8 +87,8 @@ void Request::processChunked(Client &client, std::string &filename) {
     int         end = 0;
     bool        flag = false;
 
-	std::fstream file;
-    file.open(filename.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+	std::fstream file(filename.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+    // change to FILE *file = fopen("example.bin", "rb"); // Read binary
     if (file.is_open()) {
 	    while (1) {
             if (!chunks.size())
@@ -123,56 +146,57 @@ void Request::processChunked(Client &client, std::string &filename) {
     } else exitWithError("Cant open file.");
 }
 
-void Request::parseRequest(Client &client) {
-    std::string request = client.getRequest();
+bool Request::parseRequest(Client &client, std::vector<Client> &clientSockets, std::string &request) {
     std::map<std::string, std::string> headers;
     std::istringstream iss(request);
     std::string encoding, delimiter;
-    std::string key, value, line;
+    std::string key, value, line, left;
 
     if (client.header == false) {
         if (std::getline(iss, line)) {
             std::istringstream is(line);
-            is >> method >> uri >> http;
-            // if (!is.eof())
-            //     exitWithError("Bad request.."); // 400 Bad Request
+            is >> method >> uri >> http >> left;
+            if (!left.empty())
+                return ft_error(400, client);
             if (method.compare("GET") && method.compare("POST") && method.compare("DELETE"))
-                exitWithError("Bad request"); // 400 Bad Request
+                return ft_error(400, client);
             if (uri.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%") != std::string::npos)
-                exitWithError("Bad request"); // 400 Bad Request
+                return ft_error(400, client);
             if (uri.size() > 2048)
-                exitWithError("URI too long"); // 414 URI Too Long
+                return ft_error(414, client);
             if (uri.find("?") != std::string::npos)
                 query = uri.substr(uri.find("?") + 1, uri.size() - uri.find("?"));
-        } else exitWithError("Bad request"); // 400 Bad Request
-
+        } else return ft_error(400, client); // exitWithError("Bad request"); // 400 Bad Request
+        line.clear();
         while (std::getline(iss, line)) {
-            if (line.compare("\r") == 0) {
+            if (line.compare("\r") == 0 || line.empty()) {
+                if (line.empty())
+                    return ft_error(400, client);
                 client.header = true;
                 break;
             }
-            if (line.find(":") != std::string::npos) {
+            else if (line.find(":") != std::string::npos) {
                 key = line.substr(0, line.find(":"));
                 value = line.substr(line.find(":") + 2, line.size() - line.find(":") - 3);
                 if (!key.empty() && !value.empty())
                     headers[key] = value;
-                else exitWithError("Bad request"); // 400 Bad Request
-            }
+                else return ft_error(400, client);
+            } else return ft_error(400, client);
+            line.clear();
         }
-        setEncoding(client, encoding);
         client.setHeaders(headers);
-        client.setEncoding(encoding);
-        if (headers.find("Content-Length") != headers.end())
-            client.toRead = atoi(headers["Content-Length"].c_str());
-        else client.toRead = 0;
+        if (!setEncoding(client, encoding, clientSockets))
+            return false;
+
         if (client.toRead > client.getConfData().bodySize)
-            exitWithError("Request body too large"); // 413 Request Intity Too Large
+            return ft_error(413, client);
 
         int end = request.find("\r\n\r\n");
         if (end != std::string::npos)
             request = request.erase(0, end + 4);
+        if (!request.size() && client.toRead)
+            return ft_error(400, client);
 
-        client.setRequest(request);
         client.setMethod(method);
         client.setURI(uri);
         client.setQuery(query);
@@ -189,15 +213,16 @@ void Request::parseRequest(Client &client) {
 
     std::string name(fileName.str());
     if (client.encoding == "chunked")
-        processChunked(client, name);
-    else if (client.encoding == "length") {
+        processChunked(client, name, request);
+    else if (client.encoding == "length" && client.toRead != 0) {
         file.write(request.c_str(), request.size());
         client.readed += request.size();
     }
 
-    if (client.readed >= client.toRead) {
+    if (client.readed >= client.toRead) { // handle when body size > content length
         log("------     Request body received     ------\n");
         client.received = true;
         file.close();
     }
+    return true;
 }

@@ -13,6 +13,7 @@ Client::Client() {
     responseSent = 0;
     bytesSent = 0;
     headerSent = false;
+    state = READY;
     offset = 0;
     pos = 0;
 }
@@ -32,7 +33,7 @@ Client& Client::operator=(const Client &cl) {
         header = cl.header;
         toRead = cl.toRead;
         readed = cl.readed;
-        request = cl.request;
+        // request = cl.request;
     }
     return *this;
 }
@@ -53,10 +54,6 @@ int Client::getFd() { return clientFd; }
 void Client::setAddr(struct sockaddr_in &socketAddr) { addr = socketAddr; }
 
 sockaddr_in &Client::getAddr() { return addr; }
-
-// void Client::setAddrLen(int addrL) {addrLen = addrL; }
-
-// size_t Client::getAddrLen() { return addrLen; }
 
 void Client::setHeaders(std::map<std::string, std::string> &header) { headers = header; }
 
@@ -89,10 +86,6 @@ std::string Client::getDelimiter() { return delimiter; }
 void Client::setQuery(std::string &q) { query = q; }
 
 std::string Client::getQuery() { return query; }
-
-void Client::setRequest(std::string &req) { request = req; }
-
-std::string &Client::getRequest() { return request; }
 
 void Client::setConfData(Data &confData) { data = confData; }
 

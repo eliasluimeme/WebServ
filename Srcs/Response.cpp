@@ -22,19 +22,19 @@ bool Response::sendResponse(int clientFd, std::string &responseMsg) {
 }
 
 bool Response::buildResponse(Client &client, Data &serverData, std::string &filename) {
-    // client = cl;
+    std::cout << "--------   Building Response   ---------\n" << std::endl;
+
     CGI cgi;
-    std::fstream file;
     std::string cgiMsg;
-    file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream file(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
+    // change to FILE *file = fopen("example.bin", "rb"); // Read binary
 
     std::string uri = client.getURI();
-    std::string cgiLocation = serverData.locations["/cgi-bin"].root;
-    std::cout << "cgi location " << cgiLocation << std::endl;
 
-    if (uri.find(".php") || uri.find(".py"))
+    if ((uri.find(".php") > 0 && uri.find(".php") != std::string::npos) || (uri.find(".py") > 0 && uri.find(".py") != std::string::npos))
         cgiMsg = cgi.start(client, serverData, filename);
-
+    else cgiMsg = "<!DOCTYPE html><html lang=\"en\"><body><h1> HOME </h1><p> Hello from your Server :) </p></body></html>"; // for demonstration
+ 
     if (file.is_open()) {
         std::string line;
         // while (getline(file, line))
@@ -46,13 +46,12 @@ bool Response::buildResponse(Client &client, Data &serverData, std::string &file
     }
 
     // Delete file after sending request
-    if (std::remove(filename.c_str())) {
-        std::cout << "Error removing file" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    // if (std::remove(filename.c_str())) { // TODO remove files when an error accures
+    //     std::cerr << "Error removing file" << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
 
-    return sendResponse(client.getFd(), cgiMsg);
-    // return true;
+    return sendResponse(client.getFd(), cgiMsg); 
 }
 
 // bool Response::sendResponse(int clientFd, std::string &responseMsg) {

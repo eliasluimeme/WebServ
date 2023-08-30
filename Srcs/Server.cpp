@@ -1,9 +1,9 @@
 #include "../Includes/Includes.hpp"
 
-Server::Server(): header(false), received(false), endHeader(false) {}
+Server::Server() {}
 
 Server::~Server() {
-    closeServer();
+    closeServers();
 }
 
 
@@ -11,27 +11,24 @@ void Server::log(std::string message) {
     std::cout << message << std::endl;
 }
 
-void Server::exitWithError(const std::string error) {
-    std::cerr << "[-] Error: " << error << std::endl;
-    cleanup();
-    closeServer();
-    exit(EXIT_FAILURE);
+void Server::reset() { // reset
+    // if (file.is_open())
+    //     file.close();
 }
 
-void Server::closeServer() {
+void Server::closeServers() {
     for (int i = 0; i < servers.size(); i++) {
         for (std::vector<Client>::iterator it = servers[i].clientSockets.begin(); it != servers[i].clientSockets.end(); it++)
             close(it->getFd());
         close(servers[i].serverSocket);
     }
-    // close(serverSocket);
-    // exit(EXIT_FAILURE);
 }
 
-void Server::cleanup() { // reset
-    // if (file.is_open())
-    //     file.close();
-    endHeader = false;
+void Server::exitWithError(const std::string error) {
+    std::cerr << "[-] Error: " << error << std::endl;
+    reset();
+    closeServers();
+    exit(EXIT_FAILURE);
 }
 
 Data &Server::getConfData() {
@@ -55,112 +52,12 @@ int Server::findClientIndex(Servers &server, int &clientSock) {
 }
 
 void Server::buildResponse() {
+    std::string responseMsg;
     std::string html = "<!DOCTYPE html><html lang=\"en\"><body><h1> HOME </h1><p> Hello from your Server :) </p></body></html>";
     std::ostringstream ss;
 
     ss << "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: " << html.size() << "\n\n" << html;
     responseMsg = ss.str();
-}
-
-// void sendVideoChunk(int clientSocket, const std::string& chunkData, int chunkNumber) {
-//     std::ostringstream response;
-//     response << "HTTP/1.1 200 OK\r\n";
-//     response << "Content-Type: video/mp4\r\n";
-//     response << "Content-Length: " << chunkData.size() << "\r\n";
-//     response << "Content-Range: bytes " << chunkNumber * CHUNK_SIZE << "-" << (chunkNumber + 1) * CHUNK_SIZE - 1 << "/*\r\n\r\n";
-
-//     // Send the HTTP response header
-//     send(clientSocket, response.str().c_str(), response.str().size(), 0);
-
-//     // Send the chunk data
-//     send(clientSocket, chunkData.c_str(), chunkData.size(), 0);
-// }
-
-void sendChunk(int clientSocket, const std::string& chunk) {
-    std::ostringstream response;
-    response << "HTTP/1.1 200 OK\r\n";
-    response << "Content-Type: video/mp4\r\n";
-    response << "Transfer-Encoding: chunked\r\n\r\n";
-
-    // Send the HTTP response header
-    send(clientSocket, response.str().c_str(), response.str().size(), 0);
-
-    // Send the chunk size in hexadecimal format followed by the chunk data
-    // std::string chunkSize = std::to_string(chunk.size()) + "\r\n";
-    // send(clientSocket, chunkSize.c_str(), chunkSize.size(), 0);
-    // send(clientSocket, chunk.c_str(), chunk.size(), 0);
-    // send(clientSocket, "\r\n", 2, 0);
-}
-
-void Server::buildVideo(int clientSocket) {
-    std::ifstream videoFile("video1.mp4", std::ios::binary);
-
-    if (!videoFile.is_open()) {
-        std::cerr << "Failed to open video file." << std::endl;
-        return;
-    }
-
-    static int chunkNumber = 0;
-    std::vector<char> chunkData(CHUNK_SIZE);
-    char buffer[1024];
-    while (!videoFile.eof()) {
-        // Determine the start and end byte positions based on the Range header
-        int startByte = 0; // Calculate this based on the Range header
-        int endByte = startByte + sizeof(buffer) - 1; // Adjust the end byte as needed
-        videoFile.seekg(startByte);
-        
-        // Read the chunk from the file
-        videoFile.read(buffer, sizeof(buffer));
-        std::string chunk(buffer, videoFile.gcount());
-        sendChunk(clientSocket, chunk);
-    }
-
-    // char buffer[1024];
-    // while (!videoFile.eof()) {
-    //     videoFile.read(buffer, sizeof(buffer));
-    //     std::string chunk(buffer, videoFile.gcount());
-    //     sendChunk(clientSocket, chunk);
-    // }
-
-    // while (true) {
-    //     videoFile.read(chunkData.data(), CHUNK_SIZE);
-    //     int bytesRead = videoFile.gcount();
-
-    //     if (bytesRead == 0) {
-    //         std::cout << "response sent" << std::endl; // End of file
-    //         break;
-    //     } // TODO check if file is sent befor closing the socket
-
-    //     // Send the current chunk
-    //     // sendVideoChunk(clientSocket, std::string(chunkData.data(), bytesRead), chunkNumber);
-    //     chunkNumber++;
-    // }
-
-    videoFile.close();
-}
-
-void Server::buildImage(int clientSocket) {
-   std::ifstream imageFile("image1.jpg", std::ios::binary);
-
-    if (!imageFile.is_open()) {
-        std::cerr << "Failed to open image file." << std::endl;
-        return;
-    }
-
-    std::vector<char> imageData((std::istreambuf_iterator<char>(imageFile)), std::istreambuf_iterator<char>());
-
-    std::ostringstream response;
-    response << "HTTP/1.1 200 OK\r\n";
-    response << "Content-Type: image/jpeg\r\n";
-    response << "Content-Length: " << imageData.size() << "\r\n\r\n";
-
-    // Send the HTTP response header
-    send(clientSocket, response.str().c_str(), response.str().size(), 0);
-
-    // Send the image data
-    send(clientSocket, imageData.data(), imageData.size(), 0);
-
-    imageFile.close();
 }
 
 void Server::sendResponse(Servers &server, int &clientFd) {
@@ -182,10 +79,9 @@ void Server::sendResponse(Servers &server, int &clientFd) {
     //     log("------ Response sent to client ------\n\n");
     // else
     //     exitWithError("Error sending response to client");
-    if (response.buildResponse(server.clientSockets[index], server.serverData, name) == true) // TODO send from response
-    {
+    if (response.buildResponse(server.clientSockets[index], server.serverData, name) == true) {
         std::cout << "cleanin..." << std::endl;
-        cleanup(); // TODO: clean resources
+        reset(); // TODO: clean resources
         server.clientSockets[index].cleanup();
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &writeSetTmp);
@@ -228,14 +124,19 @@ void Server::handleRequest(Servers &server, int &clientFd) {
         Request request;
         struct timeval currentTime;
         currentTime.tv_sec = static_cast<time_t>(time);
-        // if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
-        //     exitWithError("Request timeout...");
+        if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
+            request.ft_error(408, server.clientSockets[index]);
         
         requestMsg = std::string(buff, bytesRead);
-        server.clientSockets[index].setRequest(requestMsg);
-        request.parseRequest(server.clientSockets[index]);
-
-        if (server.clientSockets[index].received == true) {
+        // server.clientSockets[index].setRequest(requestMsg);
+        request.parseRequest(server.clientSockets[index], server.clientSockets, requestMsg);
+        
+        if (server.clientSockets[index].state == CLEAR) {
+            server.clientSockets.erase(server.clientSockets.begin() + index);
+            FD_CLR(clientFd, &readSetTmp);
+            close(clientFd);
+        }
+        else if (server.clientSockets[index].received == true) {
             std::cout << "to read: " << server.clientSockets[index].toRead << " readed: " << server.clientSockets[index].readed << std::endl;
             log("------ Received Request from client: " + ss.str() + " ------\n\n");
             FD_CLR(clientFd, &readSetTmp);
@@ -252,7 +153,7 @@ void Server::acceptConnection(Servers &server) {
     unsigned int clientAddrLength = sizeof(clientAddr);
     int clientSocket = accept(server.serverSocket, (struct sockaddr *)&clientAddr, &clientAddrLength);
     if (clientSocket < 0)
-        exitWithError("Couldn't accept connection. Accept failed");
+        perror("Couldn't accept connection. Accept failed");
     
     log("------   New Connection accepted    ------\n");
 
@@ -263,24 +164,41 @@ void Server::acceptConnection(Servers &server) {
     client.setFd(clientSocket);
     client.setAddr(clientAddr);
     client.setConfData(server.serverData);
+
+
+
     server.clientSockets.push_back(client);
 }
 
 bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
     // check ports
-    // if multiple servers listen on the same port check for server name
+    // if multiple servers listen on the same port check for host with server name
     // define sensible default value when not found
     int i = 1;
     int serverNum = serversData.size();
-    Servers serv;
 
     FD_ZERO(&readSet);
     FD_ZERO(&writeSet);
     for (int i = 0; i < serverNum; i++) {
+        Servers serv;
         std::map<std::string, std::string>::iterator listenTo = serversData[i].listen.begin();
-        serv.ipAdress = listenTo->first;
-        serv.port = atoi(listenTo->second.c_str());
 
+        if (listenTo->first.empty()) 
+            serv.ipAdress = "127.0.0.1";
+        else serv.ipAdress = listenTo->first;
+        if (listenTo->second.empty())
+            serv.port = 8080;
+        else {
+            try {
+                serv.port = atoi(listenTo->second.c_str());
+            } catch(const std::exception &e) {
+                exitWithError(e.what());
+            }
+        }
+
+        ports[i][serversData[i].serverName[0]] = serv.port; // readjust servername
+        // check for same ports
+        
         memset(&serv.serverAddr, 0, sizeof(serv.serverAddr));
         serv.serverAddr.sin_family = AF_INET;
         serv.serverAddr.sin_port = htons(serv.port);
@@ -294,8 +212,8 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
             // exitWithError("Couldn't set SO_NOSIGPIPE");
         int a = 1;
         signal(SIGPIPE, SIG_IGN);
-        if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(i)) < 0)
-            exitWithError("Couldn't set SO_REUSEADDR");
+        if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(i)) < 0) // redo a
+            exitWithError("Couldn't set REUSEADDR opt");
         if (bind(serv.serverSocket, (struct sockaddr *)&serv.serverAddr, sizeof(serv.serverAddr)) < 0)
             exitWithError("Couldn't bind socket");
 
@@ -314,6 +232,8 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
         FD_SET(serv.serverSocket, &readSet);
         maxFd = std::max(maxFd, serv.serverSocket);
     }
+    for (int i = 0; i < serverNum; i++)
+
     return true;
 }
 
@@ -329,16 +249,15 @@ void Server::startServers(std::vector<Data> &serversData) {
     FD_ZERO(&readSetTmp);
     FD_ZERO(&writeSetTmp);
     while (true) {
-        int sel = 0;
+        int activity = 0;
         int maxFdTmp = maxFd;
         readSetTmp = readSet;
         writeSetTmp = writeSet;
 
         log("====== Waiting for a new connection ======\n");
-        if ((sel = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
-            exitWithError("Select failed!");
-        // else if (sel == 0)
-        //     exitWithError("Timeout accured.."); // error 504 timeout
+        
+        if ((activity = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
+            perror("Select failed!");
 
         for (int servIndex = 0; servIndex < servers.size(); servIndex++) {
             if (FD_ISSET(servers[servIndex].serverSocket, &readSet)) 

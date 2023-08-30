@@ -2,9 +2,9 @@
 
 #include "../Includes/Includes.hpp"
 
-#define BUFFER_SIZE 10000
-#define REQUEST_TIMEOUT 2
-#define CGI_TIMEOUT 2
+#define BUFFER_SIZE 100000
+#define REQUEST_TIMEOUT 30
+#define CGI_TIMEOUT 20
 #define RESPONSE_TIMEOUT 30
 #define MAX_CLIENTS 20
 #define CHUNK_SIZE 1024
@@ -28,31 +28,22 @@ class Server {
         ~Server();
         void startServers(std::vector<Data> &);
         bool initServers(std::vector<Data> &);
-        void closeServer();
+        void closeServers();
         void acceptConnection(Servers &);
         void handleRequest(Servers &,int &);
         void buildResponse();
-        void buildImage(int );
-        void buildVideo(int );
         void sendResponse(Servers &, int &);
         void setNonBlocking(int &);
         void exitWithError(std::string);
         void log(std::string);
-        void cleanup();
+        void reset();
         int  findClientIndex(Servers &, int &);
         Data &getConfData();
-        // void parseRequest(int, std::string);
-        // void setEncoding(std::map<std::string, std::string> &, std::string &, int);
-        // void processChunked(std::string chunks, std::string filename);
 
     private:
         Data data;
-        fd_set readSet, writeSet, readSetTmp, writeSetTmp;
-        struct timeval timeout;
-        std::string ipAdress;
-        int port, maxFd;
+        int maxFd;
         std::vector<Servers> servers;
-        std::string method, uri, http, query, delimiter, responseMsg;
-        int toRead, readed;
-        bool header, received, endHeader;
+        std::map<int, std::map<std::string, int> > ports;
+        fd_set readSet, writeSet, readSetTmp, writeSetTmp;
 };

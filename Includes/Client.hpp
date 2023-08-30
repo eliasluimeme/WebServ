@@ -7,7 +7,8 @@ class ConfData;
 enum clientState {
     READY,
     REQUEST_RECEAVED,
-    RESPONSE_COMPLETE,
+    RESPONSE_SENT,
+    CLEAR,
 };
 
 class Client {
@@ -37,8 +38,6 @@ class Client {
         std::string getDelimiter();
         void setQuery(std::string &);
         std::string getQuery();
-        void setRequest(std::string &);
-        std::string &getRequest();
         void setConfData(Data &);
         Data &getConfData();
 
@@ -47,6 +46,7 @@ class Client {
         std::string encoding, delimiter;
         std::string leftInChunk;
         struct timeval startTime, reqTimeout, cgiTimeout;
+        enum clientState state;
 
         // For Response
         void setPos(std::streampos );
@@ -63,7 +63,6 @@ class Client {
         int clientFd;
         struct sockaddr_in addr;
         std::string method, uri, query, http;
-        std::string request;
         std::map<std::string, std::string> headers;
 
         std::streampos pos;

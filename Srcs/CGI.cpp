@@ -19,9 +19,9 @@ void CGI::getEnv(Client &client) {
     if (!f.is_open())
         perror("cant open test file");
 
-    std::map<std::string, std::string> headers = client.getHeaders();
     std::stringstream ss;
     std::vector<char*> ptr;
+    std::map<std::string, std::string> headers = client.getHeaders();
 
     ptr.push_back(strdup(std::string("REQUEST_METHOD=" + client.getMethod()).c_str()));
     ptr.push_back(strdup(std::string("CONTENT_TYPE=" + headers["Content-Type"]).c_str()));
@@ -35,7 +35,7 @@ void CGI::getEnv(Client &client) {
     // uint16_t port = ntohs(client.getAddr().sin_port);
     // ss << port;
     // ptr.push_back(strdup(std::string("REMOTE_PORT=" + ss.str()).c_str()));
-    ss.str("");
+    // ss.str("");
     ptr.push_back(strdup(std::string("REQUEST_URI =" + client.getURI()).c_str()));
     ptr.push_back(strdup(std::string("QUERY_STRING=" + client.getQuery()).c_str()));
     ptr.push_back(strdup(std::string("SCRIPT_NAME=" + client.getURI().substr(0, client.getURI().find("?"))).c_str()));
@@ -53,15 +53,14 @@ void CGI::getEnv(Client &client) {
 
     if (env == NULL)
         perror("No env");
-
 }
 
 std::string CGI::start(Client &client, Data &serverData, std::string &filename) {
     int cgiInput[2];
     int cgiOutput[2];
 
-    pipe(cgiInput);
-    pipe(cgiOutput);
+    if (pipe(cgiInput) < 0 || pipe(cgiOutput))
+        perror("pipe error");
 
     std::string response;
     pid_t pid = fork();
@@ -85,6 +84,21 @@ std::string CGI::start(Client &client, Data &serverData, std::string &filename) 
         std::string scriptName(client.getURI().substr(0, client.getURI().find("?")));
         if (scriptName.find(".") != 0)
             scriptName = "." + scriptName;
+
+        if (client.getMethod() == "POST") {
+            std::fstream f;
+            char buff[4069];
+            std::string requestBody;
+            f.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app); // change to FILE *file = fopen("example.bin", "rb"); // Read binary
+            if (!f.is_open())
+                perror("cant open request file");
+
+            while ((f.read(buff, sizeof(buff))))
+                requestBody += std::string(buff, sizeof(buff));
+
+            if (write(STDIN_FILENO, requestBody.c_str(), requestBody.size()) == -1)
+                perror("error writing request body to cgi");
+        }
 
         char *av[] = {const_cast<char*>(interpreter.c_str()), const_cast<char*>(scriptName.c_str()), NULL};
 		execve(av[0], av, env);
