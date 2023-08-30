@@ -19,6 +19,7 @@ private:
     void    addIndex(std::vector<std::string> args);
     void    addAlias(std::vector<std::string> args);
     void    addAutoindex(std::vector<std::string> args);
+    void    addUpload(std::vector<std::string> args);
 
     std::vector<t_listen>				_listen;
 	std::string							_root;
@@ -35,6 +36,7 @@ private:
 	bool								_autoindex;
 	std::string     					_alias;
 	bool								_aliasSet;
+    std::string                         _uploadPass;
 	static  ConfigServer				_defaultServer;
 	static  parseMap					serverParsingMap;
 	static  parseMap					locationParsingMap;

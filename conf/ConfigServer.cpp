@@ -31,6 +31,7 @@ parseMap ConfigServer::_initServerMap()
     map["methods"] = &ConfigServer::addAllowedmethod;
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
+    map["upload_pass"] = &ConfigServer::addUpload;
     return map;
 }
 
@@ -48,6 +49,7 @@ parseMap ConfigServer::_initLocationMap()
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
     map["alias"] = &ConfigServer::addAlias;
+    map["upload_pass"] = &ConfigServer::addUpload;
     return map;
 }
 
@@ -334,6 +336,8 @@ void    ConfigServer::addCgiparams(std::vector<std::string> args)
 {
     if (args.size() != 2)
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);    
     this->_cgi_param[args[0]] = args[1];
 }
 
@@ -379,16 +383,27 @@ void    ConfigServer::addAlias(std::vector<std::string> args)
 
 void ConfigServer::addAutoindex(std::vector<std::string> args)
 {
+    std::cout << args[0] << std::endl;
     if (args.size() != 1)
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
     if (args[0] == "on")
         this->_autoindex = true;
-    if (args[0] == "off")
+    else if (args[0] == "off")
         this->_autoindex = false;
     else
         throw ConfigServer::InvalidArgumentsException();
 }
 
+void ConfigServer::addUpload(std::vector<std::string> args)
+{
+    if (args.size() != 1)
+        throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
+    this->_uploadPass = args[0];
+}
 
 std::string ConfigServer::get_root() const
 {
@@ -512,6 +527,7 @@ std::ostream	&operator<<(std::ostream &out, const ConfigServer &server) {
 	for (std::map<int, std::string>::const_iterator i = server._error_page.begin(); i != server._error_page.end(); i++) {
 		out << "\t" << i->first << " " << i->second << std::endl;
 	}
+    out << "upload_pass " << server._uploadPass << std::endl; 
 	out << "body_size: " << server._client_body_buffer_size << std::endl;
 	out << "cgi_param:" << std::endl;
 	for (std::map<std::string, std::string>::const_iterator i = server._cgi_param.begin(); i != server._cgi_param.end(); i++)
