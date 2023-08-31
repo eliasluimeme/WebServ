@@ -343,7 +343,7 @@ void    ConfigServer::addCgiparams(std::vector<std::string> args)
 
 void ConfigServer::addCgipass(std::vector<std::string> args)
 {
-    if (args.size() != 1)
+    if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
     size_t sep = args[0].find(";");    
     this->_cgi_pass = args[0].substr(0, sep);
@@ -372,10 +372,7 @@ void ConfigServer::addIndex(std::vector<std::string> args)
 void    ConfigServer::addAlias(std::vector<std::string> args)
 {
     if (args.size() > 1)
-    {
-        std::cout << "messi" << std::endl;
         throw ConfigServer::InvalidArgumentsException();
-    }
     if (args.size())
         this->_alias = args[0];
     this->_aliasSet = true;
@@ -383,8 +380,7 @@ void    ConfigServer::addAlias(std::vector<std::string> args)
 
 void ConfigServer::addAutoindex(std::vector<std::string> args)
 {
-    std::cout << args[0] << std::endl;
-    if (args.size() != 1)
+    if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
     size_t sep = args[0].find(";");
     args[0] = args[0].substr(0, sep);
