@@ -1,4 +1,5 @@
-#include "../Includes/Includes.hpp"
+
+#include "ReaderConf.hpp"
 
 ReaderConf::ReaderConf(void)
 {
@@ -40,33 +41,47 @@ filevector ReaderConf::split(std::string str, std::string c)
     }
     return tokens;
 }
-
+bool ReaderConf::checkfile(std::string file)
+{
+    std::istringstream iss(file);
+    std::string line;
+    int i = 0;
+    while (std::getline(iss, line))
+    {
+        // std::cout <<RED<< line << std::endl;
+        if ((line.find("{") != std::string::npos) || (line.find("}") != std::string::npos) || line == "")
+            i++;
+        else if(line.find(';') == std::string::npos)
+            return false;
+    }
+    return true;
+}
 filevector ReaderConf::readfile(const char * filename)
 {
-    int  ret = READER_BUFFER_SIZE;
-    char buffer[READER_BUFFER_SIZE + 1];
-    std::string line = "";
-    int fd;
     filevector file;
+    std::ifstream inputFile(filename); 
 
-    for (size_t i = 0; i < READER_BUFFER_SIZE + 1; i++)
-        buffer[i] = '\0';
-    if ((fd = open(filename, O_RDONLY)) <= 0)
+    if (!(inputFile.is_open()))
         throw ReaderConf::FileNotfoundException();
-    for (ret = READER_BUFFER_SIZE; ret > 0; ret = read(fd, buffer, READER_BUFFER_SIZE))
+    std::string fileContents((std::istreambuf_iterator<char>(inputFile)),
+                                 (std::istreambuf_iterator<char>()));
+    inputFile.close();
+
+    if (!checkfile(fileContents))
     {
-        buffer[ret] = '\0';
-        line += buffer;
+        throw ErrorConfigFileExce();
     }
-    if (ret == -1)
-    {
-        std::cerr << "error while reading config file" << std::endl;
-        return file;
-    }
-    file = ReaderConf::split(line, std::string(" \n\t"));
+    
+    file = ReaderConf::split(fileContents, std::string(" \n\t"));
     return file;
 }
-
-const char	*ReaderConf::FileNotfoundException::what() const throw(){
+const char	*ReaderConf::FileNotfoundException::what() const throw()
+{
 	return "Exception thrown: could not open configuration file";
 }
+const char * ReaderConf::ErrorConfigFileExce::what() const throw()
+{
+    return "error in Config file";
+}
+
+    

@@ -1,4 +1,7 @@
-#include "../Includes/Includes.hpp"
+
+#include "HelperFunc.hpp"
+
+
 
 std::string	to_string(size_t n)
 {
@@ -11,7 +14,7 @@ std::string	to_string(size_t n)
 
 bool isDigits(const std::string &str)
 {
-  return str.find_first_not_of("0123456789") == std::string::npos;
+  return str.find_first_not_of("0123456789;") == std::string::npos;
 }
 
 std::string removeSlaches(const std::string &str) 

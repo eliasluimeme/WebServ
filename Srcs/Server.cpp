@@ -79,6 +79,7 @@ void Server::sendResponse(Servers &server, int &clientFd) {
     //     log("------ Response sent to client ------\n\n");
     // else
     //     exitWithError("Error sending response to client");
+    std::cout << "here" << std::endl;
     if (response.buildResponse(server.clientSockets[index], server.serverData, name) == true) {
         std::cout << "cleanin..." << std::endl;
         reset(); // TODO: clean resources
@@ -88,6 +89,7 @@ void Server::sendResponse(Servers &server, int &clientFd) {
         close(clientFd);
         // exit(0);
     }
+    std::cout << "nothing" << std::endl;
 
     // delete file after sending response
     // std::string s(fileName.str());
@@ -128,15 +130,14 @@ void Server::handleRequest(Servers &server, int &clientFd) {
             request.ft_error(408, server.clientSockets[index]);
         
         requestMsg = std::string(buff, bytesRead);
-        // server.clientSockets[index].setRequest(requestMsg);
-        request.parseRequest(server.clientSockets[index], server.clientSockets, requestMsg);
-        
+        request.parseRequest(server.clientSockets[index], requestMsg);
+        std::cout << "tema" << std::endl;
         if (server.clientSockets[index].state == CLEAR) {
             server.clientSockets.erase(server.clientSockets.begin() + index);
             FD_CLR(clientFd, &readSetTmp);
             close(clientFd);
         }
-        else if (server.clientSockets[index].received == true) {
+        else if ((server.clientSockets[index].received == true) || (server.clientSockets[index].state == REQUEST_RECEAVED)) {
             std::cout << "to read: " << server.clientSockets[index].toRead << " readed: " << server.clientSockets[index].readed << std::endl;
             log("------ Received Request from client: " + ss.str() + " ------\n\n");
             FD_CLR(clientFd, &readSetTmp);
@@ -151,21 +152,22 @@ void Server::acceptConnection(Servers &server) {
 
     memset(&clientAddr, 0, sizeof(clientAddr));
     unsigned int clientAddrLength = sizeof(clientAddr);
-    int clientSocket = accept(server.serverSocket, (struct sockaddr *)&clientAddr, &clientAddrLength);
-    if (clientSocket < 0)
-        perror("Couldn't accept connection. Accept failed");
-    
-    log("------   New Connection accepted    ------\n");
+    if (server.state != VIRTUAL) {
+        int clientSocket = accept(server.serverSocket, (struct sockaddr *)&clientAddr, &clientAddrLength);
+        if (clientSocket < 0)
+            perror("Couldn't accept connection. Accept failed");
+        
+        log("------   New Connection accepted    ------\n");
 
-    setNonBlocking(clientSocket);
-    FD_SET(clientSocket, &readSetTmp);
-    maxFd = std::max(maxFd, clientSocket);
+        setNonBlocking(clientSocket);
 
-    client.setFd(clientSocket);
-    client.setAddr(clientAddr);
-    client.setConfData(server.serverData);
+        FD_SET(clientSocket, &readSetTmp);
+        maxFd = std::max(maxFd, clientSocket);
 
-
+        client.setFd(clientSocket);
+        client.setAddr(clientAddr);
+        client.setConfData(server.serverData);
+    }
 
     server.clientSockets.push_back(client);
 }
@@ -182,11 +184,12 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
     for (int i = 0; i < serverNum; i++) {
         Servers serv;
         std::map<std::string, std::string>::iterator listenTo = serversData[i].listen.begin();
+        serv.serverData = serversData[i];
 
         if (listenTo->first.empty()) 
             serv.ipAdress = "127.0.0.1";
         else serv.ipAdress = listenTo->first;
-        if (listenTo->second.empty())
+        if (listenTo->second.empty()) // TODO check the default server in config
             serv.port = 8080;
         else {
             try {
@@ -196,8 +199,23 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
             }
         }
 
-        ports[i][serversData[i].serverName[0]] = serv.port; // readjust servername
         // check for same ports
+        // The first server block (default server) acts as a catch-all for unrecognized domains.
+        // The subsequent server blocks are configured for specific domain names.
+        // When a request comes in, the web server examines the Host header and routes the request to the appropriate server block based on the domain name in the Host header.
+
+        // check if port already in use
+        // if so dont bind it 
+        // handle the request 
+        // then route the request to the appropriate server
+
+        for (int index = 0; index < servers.size(); index++) {
+            if (serv.port == servers[index].port) {
+                if (serv.serverData.serverName[0] != servers[index].serverData.serverName[0])
+                    serv.state = VIRTUAL;
+                else exitWithError("Invalid server configuration");
+            } else serv.state = DEFAULT;
+        }
         
         memset(&serv.serverAddr, 0, sizeof(serv.serverAddr));
         serv.serverAddr.sin_family = AF_INET;
@@ -214,26 +232,25 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
         signal(SIGPIPE, SIG_IGN);
         if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(i)) < 0) // redo a
             exitWithError("Couldn't set REUSEADDR opt");
-        if (bind(serv.serverSocket, (struct sockaddr *)&serv.serverAddr, sizeof(serv.serverAddr)) < 0)
-            exitWithError("Couldn't bind socket");
+        if (serv.state != VIRTUAL) {
+            if (bind(serv.serverSocket, (struct sockaddr *)&serv.serverAddr, sizeof(serv.serverAddr)) < 0)
+                exitWithError("Couldn't bind socket. Check your port number");
 
-        setNonBlocking(serv.serverSocket);
+            setNonBlocking(serv.serverSocket);
 
-        if (listen(serv.serverSocket, MAX_CLIENTS) < 0)
-            exitWithError("Couldn't listen to socket");
+            if (listen(serv.serverSocket, MAX_CLIENTS) < 0)
+                exitWithError("Couldn't listen to socket");
 
-        serv.serverData = serversData[i];
+            FD_SET(serv.serverSocket, &readSet);
+            maxFd = std::max(maxFd, serv.serverSocket);
+        }
+
         servers.push_back(serv);
 
         std::ostringstream ss;
         ss << "\n*** Listening on ADDRESS: " << inet_ntoa(serv.serverAddr.sin_addr) << " PORT: " << ntohs(serv.serverAddr.sin_port) << " ***\n\n";
         log(ss.str());
-
-        FD_SET(serv.serverSocket, &readSet);
-        maxFd = std::max(maxFd, serv.serverSocket);
     }
-    for (int i = 0; i < serverNum; i++)
-
     return true;
 }
 
@@ -257,7 +274,7 @@ void Server::startServers(std::vector<Data> &serversData) {
         log("====== Waiting for a new connection ======\n");
         
         if ((activity = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
-            perror("Select failed!");
+            exitWithError("Select failed!");
 
         for (int servIndex = 0; servIndex < servers.size(); servIndex++) {
             if (FD_ISSET(servers[servIndex].serverSocket, &readSet)) 
@@ -267,6 +284,8 @@ void Server::startServers(std::vector<Data> &serversData) {
                 int clientFd = servers[servIndex].clientSockets[clIndex].getFd();
                 if (FD_ISSET(clientFd, &readSet))
                     handleRequest(servers[servIndex], clientFd);
+                // if (servers[servIndex].clientSockets[clIndex].state == REINDEX)
+                //     routeRequest(servers);
                 if (FD_ISSET(clientFd, &writeSet))
                     sendResponse(servers[servIndex], clientFd);
             }
@@ -278,6 +297,5 @@ void Server::startServers(std::vector<Data> &serversData) {
     // Restore the original state of std::cout
     // std::cout.rdbuf(coutBuffer);
     // outputFile.close();
-    for (int i = 0; i < servers.size(); i++)
-        close(servers[i].serverSocket);
+    closeServers();
 }

@@ -8,6 +8,7 @@ enum clientState {
     READY,
     REQUEST_RECEAVED,
     RESPONSE_SENT,
+    REINDEX,
     CLEAR,
 };
 

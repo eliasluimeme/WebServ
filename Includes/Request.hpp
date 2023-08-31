@@ -9,10 +9,10 @@ class Request {
         Request();
         ~Request();
     
-        bool parseRequest(Client &, std::vector<Client> &, std::string &);
+        bool parseRequest(Client &, std::string &);
         void log(std::string);
         void exitWithError(const std::string);
-        bool setEncoding(Client &, std::string &, std::vector<Client> &);
+        bool setEncoding(Client &, std::string &);
         void processChunked(Client &, std::string &, std::string &);
         bool isHexa(std::string &);
         void reset(Client &);

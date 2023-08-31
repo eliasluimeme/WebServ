@@ -1,4 +1,4 @@
-#include "../Includes/Includes.hpp"
+#include "config.hpp"
 
 Config::Config(std::string defaultserverpath)
 {
@@ -9,7 +9,7 @@ Config::Config(std::string defaultserverpath)
     }
     catch(ReaderConf::FileNotfoundException &e)
     {
-        std::cerr << "could not open default config filea" << '\n';
+        std::cerr << RED << "could not open default config filea" << '\n';
     }
     return ;
 }
@@ -24,6 +24,22 @@ std::vector<ConfigServer> Config::getServer() const
     return this->_server;
 }
 
+// bool Config::checkfile(filevector file)
+// {
+//     size_t comma;
+//     for ( filevector::iterator i = file.begin() ;i < file.end(); i++)
+//     {
+//         if (i->data() == "server" || i->data() == "{")
+//         {
+            
+//         }
+        
+//         if (comma = i->find(";") == std::string::npos)
+//             return false;
+//     }
+//     return true;
+// }
+
 int Config::parse(const char *filename, confData &data)
 {
     filevector file;
@@ -31,7 +47,6 @@ int Config::parse(const char *filename, confData &data)
 
     file = ReaderConf::readfile(filename);
     filesize = file.size();
-    
     for (unsigned int i = 0; i < filesize; i++)
     {
         if (file[i] == "server")
@@ -40,13 +55,13 @@ int Config::parse(const char *filename, confData &data)
             ++i;
             if (file[i] != "{")
             {
-                std::cerr << "Error : Expected '{' after server directive." << std::endl;
+                std::cerr << RED << "Error : Expected '{' after server directive." << std::endl;
                 return 1;
             }
             ++i;
             if (!server.parseServer(i, file))
             {
-                std::cerr << "Error : error in config file ["<< filename << "]" << std::endl;
+                std::cerr << RED << "Error : error in config file ["<< filename << "]" << std::endl;
                 return 1;
             }
             this->_server.push_back(server);
@@ -57,13 +72,8 @@ int Config::parse(const char *filename, confData &data)
             return 1;
         }   
     }
+    // std::cout << this->_server[0] << '\n';  
     data.server = this->_server;
-    // for (size_t i = 0; i < this->_server.size(); i++)
-    // {
-    //         std::cout << this->_server[i] << '\n';
-    // }
-    
-    
 
     return 0;
 }
@@ -83,34 +93,34 @@ int Config::parse(const char *filename, confData &data)
 //         return config;
 //     }
 
-// bool Config::getServerforRequest(ConfigServer &ret, t_listen const address, std::string const hostName) const 
-// {
-//     std::vector<ConfigServer> possibleServers;
-//     for (std::vector<ConfigServer>::const_iterator serveriter = this->_server.begin(); serveriter != this->_server.end(); serveriter++)
-//     {
-//         std::vector<t_listen> listen = serveriter->get_listen();
-//         for (std::vector<t_listen>::iterator listniter = listen.begin(); listniter < listen.end() ; listniter++)
-//         {
-//             if (address.host == (*listniter).host && address.port == (*listniter).port)
-//                 possibleServers.push_back((*serveriter));
-//         }
-//     }
-//     if (possibleServers.empty())
-//         return false;
-//     for ( std::vector<ConfigServer>::iterator servreiter = possibleServers.begin(); servreiter != possibleServers.end(); servreiter++)
-//     {
-//         std::vector<std::string> servernames = servreiter->get_server_name();
-//         for (filevector::iterator servernameIter= servernames.begin(); servernameIter !=servernames.end(); servernameIter++)
-//         {
-//             if (*servernameIter == hostName)
-//             {
-//                 ret = *servreiter;
-//                 return true;
-//             }
-//         }
-//     }
-//     ret = possibleServers[0];
-//     return true;
-// }
+bool Config::getServerforRequest(ConfigServer &ret, t_listen const address, std::string const hostName) const 
+{
+    std::vector<ConfigServer> possibleServers;
+    for (std::vector<ConfigServer>::const_iterator serveriter = this->_server.begin(); serveriter != this->_server.end(); serveriter++)
+    {
+        std::vector<t_listen> listen = serveriter->get_listen();
+        for (std::vector<t_listen>::iterator listniter = listen.begin(); listniter < listen.end() ; listniter++)
+        {
+            if (address.host == (*listniter).host && address.port == (*listniter).port)
+                possibleServers.push_back((*serveriter));
+        }
+    }
+    if (possibleServers.empty())
+        return false;
+    for ( std::vector<ConfigServer>::iterator servreiter = possibleServers.begin(); servreiter != possibleServers.end(); servreiter++)
+    {
+        std::vector<std::string> servernames = servreiter->get_server_name();
+        for (filevector::iterator servernameIter= servernames.begin(); servernameIter !=servernames.end(); servernameIter++)
+        {
+            if (*servernameIter == hostName)
+            {
+                ret = *servreiter;
+                return true;
+            }
+        }
+    }
+    ret = possibleServers[0];
+    return true;
+}
 
 

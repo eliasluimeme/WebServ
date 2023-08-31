@@ -1,4 +1,4 @@
-#include "../Includes/Includes.hpp"
+#include "ConfigServer.hpp"
 
 //constructors
 
@@ -25,12 +25,13 @@ parseMap ConfigServer::_initServerMap()
     map["root"] = &ConfigServer::addRoot;
     map["server_name"] = &ConfigServer::addServerName;
     map["error_page"] = &ConfigServer::addErrorPage;
-    map["client_body_buffer_size"] = &ConfigServer::addclientbodybuffersize;
+    map["body_size"] = &ConfigServer::addclientbodybuffersize;
     map["cgi_param"] = &ConfigServer::addCgiparams;
     map["cgi_pass"] = &ConfigServer::addCgipass;
-    map["allow_methods"] = &ConfigServer::addAllowedmethod;
+    map["methods"] = &ConfigServer::addAllowedmethod;
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
+    map["upload_pass"] = &ConfigServer::addUpload;
     return map;
 }
 
@@ -41,13 +42,14 @@ parseMap ConfigServer::_initLocationMap()
     parseMap  map;
     map["root"] = &ConfigServer::addRoot;
     map["error_page"] = &ConfigServer::addErrorPage;
-    map["client_body_buffer_size"] = &ConfigServer::addclientbodybuffersize;
+    map["body_size"] = &ConfigServer::addclientbodybuffersize;
     map["cgi_param"] = &ConfigServer::addCgiparams;
     map["cgi_pass"] = &ConfigServer::addCgipass;
-    map["allow_methods"] = &ConfigServer::addAllowedmethod;
+    map["methods"] = &ConfigServer::addAllowedmethod;
     map["index"] = &ConfigServer::addIndex;
     map["autoindex"] = &ConfigServer::addAutoindex;
     map["alias"] = &ConfigServer::addAlias;
+    map["upload_pass"] = &ConfigServer::addUpload;
     return map;
 }
 
@@ -62,7 +64,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     file =  ReaderConf::readfile(filename);
     if (file.empty())
     {
-        std::cerr << "could not open default file at location nmm" << filename << std::endl;
+        std::cerr << RED << "could not open default file at location nmm" << filename << std::endl;
         throw ReaderConf::FileNotfoundException();
     }
     // exit(1);
@@ -76,7 +78,7 @@ ConfigServer ConfigServer::_initserverDefault(const char * filename)
     if (!server.parseServer(index, file))
     {
         
-        std::cerr << "invalid default config file" << std::endl;
+        std::cerr << RED << "invalid default config file" << std::endl;
         throw ConfigServer::InvalidArgumentsException();
     }
     ConfigServer::_defaultServer = server;
@@ -234,6 +236,7 @@ int     ConfigServer::parseLocation(unsigned int &index, filevector &file)
     return 0;
 }
 
+
 //AddMember funtion
 
 void ConfigServer::addlisten(std::vector<std::string> args)
@@ -241,18 +244,25 @@ void ConfigServer::addlisten(std::vector<std::string> args)
     t_listen listen;
     size_t sep;
 
+    // std::cout << args[0] << std::endl;
+    // exit(1);
     if (args.size() != 1)
+    {
         throw ConfigServer::InvalidArgumentsException();
+
+    }
     if ((sep = args[0].find(":")) == std::string::npos)
     {
         if (isDigits(args[0]))
         {
-            listen.host = "";
-            listen.port = args[0].c_str();
+            listen.host = "0";
+            listen.port = atoi(args[0].c_str());
             for (std::vector<t_listen>::const_iterator it  = _listen.begin(); it != _listen.end(); it++)
             {
                 if (it->port == listen.port)
+                {
                     throw ConfigServer::InvalidArgumentsException();
+                }
             }
             this->_listen.push_back(listen);
             return;
@@ -276,18 +286,20 @@ void ConfigServer::addlisten(std::vector<std::string> args)
 
 void ConfigServer::addRoot(std::vector<std::string> args)
 {
+    size_t sep;
     if (args.size() != 1 || this->_root != "")
         throw ConfigServer::InvalidArgumentsException();
-        
-    this->_root = args[0];
+    sep = args[0].find(";");
+    this->_root = args[0].substr(0, sep);
 }
 
 void ConfigServer::addServerName(std::vector<std::string> args)
 {
     if(args.size() == 0)
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");    
     for (unsigned int i = 0; i < args.size(); i++)
-        this->_server_name.push_back(args[i]);
+        this->_server_name.push_back(args[i].substr(0, sep));
 }
 
 void    ConfigServer::addErrorPage(std::vector<std::string> args)
@@ -324,14 +336,17 @@ void    ConfigServer::addCgiparams(std::vector<std::string> args)
 {
     if (args.size() != 2)
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);    
     this->_cgi_param[args[0]] = args[1];
 }
 
 void ConfigServer::addCgipass(std::vector<std::string> args)
 {
-    if (args.size() != 1)
+    if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
-    this->_cgi_pass = args[0];
+    size_t sep = args[0].find(";");    
+    this->_cgi_pass = args[0].substr(0, sep);
 }
 void ConfigServer::addAllowedmethod(std::vector<std::string> args)
 {
@@ -339,13 +354,18 @@ void ConfigServer::addAllowedmethod(std::vector<std::string> args)
         throw ConfigServer::InvalidArgumentsException();
     this->_allowed_methods.clear();
     for (filevector::iterator i = args.begin(); i < args.end(); i++)
-        this->_allowed_methods.insert(*i);
+    {
+        size_t sep = i->find(";");
+        this->_allowed_methods.insert(i->substr(0, sep));
+    }
 }
 
 void ConfigServer::addIndex(std::vector<std::string> args)
 {
     if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
     this->_index.insert(this->_index.end(), args.begin(), args.end());
 }
 
@@ -360,16 +380,26 @@ void    ConfigServer::addAlias(std::vector<std::string> args)
 
 void ConfigServer::addAutoindex(std::vector<std::string> args)
 {
-    if (args.size() != 1)
+    if (args.empty())
         throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
     if (args[0] == "on")
         this->_autoindex = true;
-    if (args[0] == "off")
+    else if (args[0] == "off")
         this->_autoindex = false;
     else
         throw ConfigServer::InvalidArgumentsException();
 }
 
+void ConfigServer::addUpload(std::vector<std::string> args)
+{
+    if (args.size() != 1)
+        throw ConfigServer::InvalidArgumentsException();
+    size_t sep = args[0].find(";");
+    args[0] = args[0].substr(0, sep);
+    this->_uploadPass = args[0];
+}
 
 std::string ConfigServer::get_root() const
 {
@@ -493,12 +523,13 @@ std::ostream	&operator<<(std::ostream &out, const ConfigServer &server) {
 	for (std::map<int, std::string>::const_iterator i = server._error_page.begin(); i != server._error_page.end(); i++) {
 		out << "\t" << i->first << " " << i->second << std::endl;
 	}
-	out << "client_body_buffer_size: " << server._client_body_buffer_size << std::endl;
+    out << "upload_pass " << server._uploadPass << std::endl; 
+	out << "body_size: " << server._client_body_buffer_size << std::endl;
 	out << "cgi_param:" << std::endl;
 	for (std::map<std::string, std::string>::const_iterator i = server._cgi_param.begin(); i != server._cgi_param.end(); i++)
 		out << "\t" << i->first << " = " << i->second << std::endl;
 	out << "cgi_pass:	" << server._cgi_pass << std::endl;
-	out << "allowed methods: ";
+	out << "methods: ";
 	for (std::set<std::string>::iterator i = server._allowed_methods.begin(); i != server._allowed_methods.end(); i++)
 		out << " " << *i;
 	out << std::endl;

@@ -50,11 +50,10 @@ void Request::exitWithError(const std::string error) {
     exit(EXIT_FAILURE);
 }
 
-bool Request::setEncoding(Client &client, std::string &encoding, std::vector<Client> &clientSockets) {
+bool Request::setEncoding(Client &client, std::string &encoding) {
     if (client.getHeaders().find("Content-Length") != client.getHeaders().end()) {
         encoding = "length";
         client.toRead = atoi(client.getHeaders()["Content-Length"].c_str()); // check atoi
-        std::cout << "To read " << client.toRead << std::endl;
     }
     if (client.getHeaders().find("Transfer-Encoding") != client.getHeaders().end()) {
         if (client.getHeaders()["Transfer-Encoding"] == "chunked")
@@ -125,8 +124,10 @@ void Request::processChunked(Client &client, std::string &filename, std::string 
                     client.chunkSize = strtol(subchunk.c_str(), NULL, 16);
                     chunks.erase(0, end + 2);
                 }
-                if (!client.chunkSize)
+                if (client.chunkSize == 0) {
+                    client.state = REQUEST_RECEAVED;
                     break;
+                }
             }
 	    	body = chunks.substr(0, client.chunkSize);
             readed = body.size();
@@ -146,7 +147,7 @@ void Request::processChunked(Client &client, std::string &filename, std::string 
     } else exitWithError("Cant open file.");
 }
 
-bool Request::parseRequest(Client &client, std::vector<Client> &clientSockets, std::string &request) {
+bool Request::parseRequest(Client &client, std::string &request) {
     std::map<std::string, std::string> headers;
     std::istringstream iss(request);
     std::string encoding, delimiter;
@@ -185,7 +186,7 @@ bool Request::parseRequest(Client &client, std::vector<Client> &clientSockets, s
             line.clear();
         }
         client.setHeaders(headers);
-        if (!setEncoding(client, encoding, clientSockets))
+        if (!setEncoding(client, encoding))
             return false;
 
         if (client.toRead > client.getConfData().bodySize)
@@ -194,8 +195,14 @@ bool Request::parseRequest(Client &client, std::vector<Client> &clientSockets, s
         int end = request.find("\r\n\r\n");
         if (end != std::string::npos)
             request = request.erase(0, end + 4);
-        if (!request.size() && client.toRead)
+        if ((!request.size() && client.toRead) || (!client.getMethod().compare("GET") && (request.size() || client.toRead)))
             return ft_error(400, client);
+
+        // if (headers.find("Host") != headers.end()) {
+        //     std::cout << "host " << headers["Host"] << std::endl;
+        //     if (headers["Host"] != client.getConfData().serverName[0])
+        //         client.state = REINDEX;
+        // }
 
         client.setMethod(method);
         client.setURI(uri);
@@ -218,8 +225,8 @@ bool Request::parseRequest(Client &client, std::vector<Client> &clientSockets, s
         file.write(request.c_str(), request.size());
         client.readed += request.size();
     }
-
-    if (client.readed >= client.toRead) { // handle when body size > content length
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> handle when method is get and there is no content length
+    if ((!client.encoding.compare("length") && client.readed >= client.toRead) || (!client.encoding.compare("chunked") && client.state == REQUEST_RECEAVED)) { // handle when body size > content length
         log("------     Request body received     ------\n");
         client.received = true;
         file.close();

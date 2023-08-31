@@ -13,12 +13,18 @@ class Response;
 class Client;
 class Request;
 
+enum servState {
+    DEFAULT,
+    VIRTUAL,
+};
+
 struct Servers {
     std::string ipAdress;
     int port;
     int serverSocket;
     Data serverData;
     struct sockaddr_in serverAddr;
+    enum servState state;
     std::vector<Client> clientSockets;
 };
 
