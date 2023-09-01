@@ -48,7 +48,7 @@ class Server {
 
     private:
         Data data;
-        int maxFd;
+        int maxFd, servIndex;
         std::vector<Servers> servers;
         std::map<int, std::map<std::string, int> > ports;
         fd_set readSet, writeSet, readSetTmp, writeSetTmp;

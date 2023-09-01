@@ -62,10 +62,14 @@ bool Request::setEncoding(Client &client, std::string &encoding) {
     }
     if (client.getHeaders().find("Content-Type") != client.getHeaders().end() && client.getHeaders()["Content-Type"].find("multipart/form-data;") != std::string::npos)
         return ft_error(501, client);
+
     if (method == "POST") {
         if (encoding != "chunked" && encoding != "length")
             return ft_error(400, client);
     }
+    else if (method == "GET" && encoding.empty())
+        client.state = REQUEST_RECEAVED;
+
     client.setEncoding(encoding);
     return true;
 }
@@ -224,9 +228,11 @@ bool Request::parseRequest(Client &client, std::string &request) {
     else if (client.encoding == "length" && client.toRead != 0) {
         file.write(request.c_str(), request.size());
         client.readed += request.size();
+        if (client.readed >= client.toRead)
+            client.state == REQUEST_RECEAVED;
     }
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> handle when method is get and there is no content length
-    if ((!client.encoding.compare("length") && client.readed >= client.toRead) || (!client.encoding.compare("chunked") && client.state == REQUEST_RECEAVED)) { // handle when body size > content length
+    if ((client.state == REQUEST_RECEAVED)) { // handle when body size > content length
         log("------     Request body received     ------\n");
         client.received = true;
         file.close();

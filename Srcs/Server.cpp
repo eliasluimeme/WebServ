@@ -79,22 +79,24 @@ void Server::sendResponse(Servers &server, int &clientFd) {
     //     log("------ Response sent to client ------\n\n");
     // else
     //     exitWithError("Error sending response to client");
-    std::cout << "here" << std::endl;
-    if (response.buildResponse(server.clientSockets[index], server.serverData, name) == true) {
+
+    response.buildResponse(server.clientSockets[index], server.serverData, name);
+
+    std::cout << "state " << response.state << std::endl;
+    if (response.state == 1) {
         std::cout << "cleanin..." << std::endl;
         reset(); // TODO: clean resources
         server.clientSockets[index].cleanup();
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &writeSetTmp);
         close(clientFd);
-        // exit(0);
-    }
-    std::cout << "nothing" << std::endl;
 
-    // delete file after sending response
-    // std::string s(fileName.str());
-    // if (std::remove(s.c_str()))
-    //     exitWithError("Error removing file");
+        // delete file after sending response
+        std::string s(fileName.str());
+        if (std::remove(s.c_str()))
+            exitWithError("Error removing file");
+    }
+
 }
 
 void Server::handleRequest(Servers &server, int &clientFd) {
@@ -254,6 +256,24 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
     return true;
 }
 
+void reforwarding(std::vector<Servers> &servers, int servIndex, int clIndex) {
+    // if VIRTUAL
+    // if same ip and same port
+    // if host != servname -> reforward
+    for (int i = 0; i < servers.size(); i++) {
+        if (servers[i].state == VIRTUAL) {
+            if ((servers[i].ipAdress == servers[servIndex].ipAdress) && (servers[i].port == servers[servIndex].port)) {
+                if (servers[i].serverData.serverName[0] == servers[servIndex].clientSockets[clIndex].getHeaders()["Host"]) {
+                    servers[i].clientSockets.push_back(servers[servIndex].clientSockets[clIndex]);
+                    servers[servIndex].clientSockets.erase(servers[servIndex].clientSockets.begin() + clIndex);
+                    servIndex = 0;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void Server::startServers(std::vector<Data> &serversData) {
     initServers(serversData);
 
@@ -276,7 +296,7 @@ void Server::startServers(std::vector<Data> &serversData) {
         if ((activity = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
             exitWithError("Select failed!");
 
-        for (int servIndex = 0; servIndex < servers.size(); servIndex++) {
+        for (servIndex = 0; servIndex < servers.size(); servIndex++) {
             if (FD_ISSET(servers[servIndex].serverSocket, &readSet)) 
                 acceptConnection(servers[servIndex]);
 
@@ -285,7 +305,7 @@ void Server::startServers(std::vector<Data> &serversData) {
                 if (FD_ISSET(clientFd, &readSet))
                     handleRequest(servers[servIndex], clientFd);
                 // if (servers[servIndex].clientSockets[clIndex].state == REINDEX)
-                //     routeRequest(servers);
+                //     reforwarding(servers, servIndex, clIndex);
                 if (FD_ISSET(clientFd, &writeSet))
                     sendResponse(servers[servIndex], clientFd);
             }

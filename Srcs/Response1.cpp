@@ -7,7 +7,7 @@
 // text/plain
 // text/xml
 
-Response::Response()
+Response::Response(): state(IN_PROGRESS), statee(0)
 {
     c_Type["html"] = "text/html";
     c_Type["htm"] = "text/html";
@@ -221,13 +221,15 @@ bool Response::buildResponse(Client &client, Data &serverData, std::string &file
     std::string location_key = "";
     getLocationMatch(client.getURI(), serverData.locations, location_key);
     if (location_key == "")
-        rq.ft_error(404, client);
+        return rq.ft_error(404, client);
     // std::map<std::string, Data>::iterator it = serverData.locations.find(location_key);
 
     std::cout << "Location : " << location_key << std::endl;
     std::cout << "Method : " << client.getMethod() << std::endl;
-    if (client.getMethod().compare("GET") == 0)
-        return GetMethod(client, serverData, location_key);
+    if (client.getMethod().compare("GET") == 0) {
+        GetMethod(client, serverData, location_key);
+        return true;
+    }
     // if (file.is_open()) {
     //     std::string line;
     //     // while (getline(file, line))
@@ -258,6 +260,7 @@ std::string find_filename(std::string path)
 
 void Response::sendchunked(int clientSocket, int offset, int portionSize)
 {
+    std::cout << "sending chunk" << std::endl;
     std::cout << "L : " << loc.c_str() << std::endl;
     std::ifstream file(loc.c_str(), std::ios::binary);
     if (!file.is_open())
@@ -277,7 +280,7 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
     std::string filename = find_filename(p.c_str());
     const char *s = std::strrchr(filename.c_str(), '.');
     std::string extentions(s + 1);
-    if(extentions.compare(".py") == 0 || extentions.compare(".php") == 0)
+    if(extentions.compare("py") == 0 || extentions.compare("php") == 0)
     {
         std::cout << "Extentions : " << extentions << std::endl; // CGI
         // exit(1);
@@ -286,11 +289,10 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
     {
         if (client.headerSent == false)
         {
-            std::cout << "File Name : \n"
-                      << filename << std::endl;
+            std::cout << "File Name : " << filename << std::endl;
             a.seekg(0, std::ios::end);
             client.fileSize = a.tellg();
-            a.seekg(0, std::ios::end);
+            a.seekg(0, std::ios::end); // ??
             std::ostringstream responses;
             responses << "HTTP/1.1 200 OK\r\n";
             responses << "Content-Type: " << c_Type[extentions] << "\r\n";
@@ -298,7 +300,8 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
             responses << "\r\n";
             send(client.getFd(), responses.str().c_str(), responses.str().size(), 0);
             client.headerSent = true;
-            std::cout << "hello\n";
+            state = IN_PROGRESS;
+            std::cout << "Header sent\n";
         }
         else
         {
@@ -306,25 +309,27 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
             int portionSize = 1024 * 1024;
             if (client.offset < client.fileSize)
             {
-                sendchunked(client.getFd(), client.offset, portionSize);
+                sendchunked(client.getFd(), client.offset, portionSize); // check and return false if an error accures
                 client.offset += portionSize;
                 std::cout << "Offset " << client.offset << std::endl;
             }
             else
             {
                 std::cout << "BYEEEE\n";
+                state = SENT;
                 return true;
             }
         }
     }
-    return 0;
+    return false;
 }
 
-void Response::auto_index(Client &client, std::string &root)
+bool Response::auto_index(Client &client, std::string &root)
 {
     DIR* dir = opendir(loc.c_str());
     std::string directories;
     struct dirent *dent;
+    Request rq;
     if(dir)
     {
         while((dent = readdir(dir)) != NULL)
@@ -348,7 +353,6 @@ void Response::auto_index(Client &client, std::string &root)
         }
         closedir(dir);
         std::vector<std::string>::iterator it;
-        // std::string
         res_auto_index = "<html><body><h1>Index File</h1>";
         for(it = auto_index_file.begin(); it < auto_index_file.end(); it++)
         {
@@ -362,12 +366,16 @@ void Response::auto_index(Client &client, std::string &root)
         re << "\r\n";
         re << res_auto_index;
         send(client.getFd(), re.str().c_str(), re.str().length(), 0);
+        state = SENT;
+        return true;
     }
     else
     {
         rq.ft_error(404, client);
+        state = SENT;
         // exit(1);
     }
+    return false;
 }
 
 bool Response::get_directory(Client &c, bool &autoin, std::vector<std::string> &index, std::string &root)
@@ -379,6 +387,7 @@ bool Response::get_directory(Client &c, bool &autoin, std::vector<std::string> &
     {
         std::string resp = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + dir + "/\r\n\r\n";
         send(c.getFd(), resp.c_str(), resp.size(), 0);
+        state = SENT;
     }
     if (!index.empty())
     {
@@ -389,7 +398,7 @@ bool Response::get_directory(Client &c, bool &autoin, std::vector<std::string> &
         if (!f.is_open())
         {
             r.ft_error(404, c);
-            // exit(1);
+            state = SENT;
         }
         if (get_file(f, c, c_Type, root))
             return true;
@@ -400,13 +409,14 @@ bool Response::get_directory(Client &c, bool &autoin, std::vector<std::string> &
         if (autoin == false)
         {
             r.ft_error(403, c); // error Forbidden
+            state = SENT;
             // exit (1);
         }
         else
         {
             std::cout << "hello from autoindex\n";
             // exit(1);
-            auto_index(c, root);
+            return auto_index(c, root);
         }
     }
     // exit(1);
@@ -428,24 +438,28 @@ bool Response::GetMethod(Client &client, Data &serverdata, std::string location)
     {
         Data &data = it->second;
         root = data.root;
+        if(root[root.length() - 1] != '/')
+            root += '/';
         autoin = data.autoIndex;
         index = data.index;
         std::cout << "ROOt : " << data.root << std::endl;
         std::string file = client.getURI().substr(location.length(), client.getURI().length());
         loc = data.root + file;
     }
-    std::cout << "ROOT LO : " << loc << std::endl;
+    std::cout << "ROOT TO : " << loc << std::endl;
     std::ifstream uri_file(loc.c_str());
-    if (!uri_file.is_open())
-    {
+    if (!uri_file.is_open()) {
         req.ft_error(404, client);
-        // exit(1);
+        state = SENT; ////////////////
+        return false;
     }
+
 
     if (stat(loc.c_str(), &s) != 0)
     {
         std::cout << "ERROR with STAT function" << std::endl;
         uri_file.close();
+        state = SENT;
         exit(1);
     }
     if (S_ISREG(s.st_mode) && (s.st_mode && S_IRUSR))
@@ -457,8 +471,6 @@ bool Response::GetMethod(Client &client, Data &serverdata, std::string location)
     }
     else if (S_ISDIR(s.st_mode))
     {
-        autoin = true;
-        std::cout << "URI :" << client.getURI() << std::endl;
         if (get_directory(client, autoin, index, root))
             return true;
     }
