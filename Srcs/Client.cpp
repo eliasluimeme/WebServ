@@ -16,13 +16,13 @@ Client::Client() {
     state = READY;
     offset = 0;
     pos = 0;
+    reIndex = false;
 }
 
 Client& Client::operator=(const Client &cl) {
     if (this != &cl) {
         clientFd = cl.clientFd;
         addr = cl.addr;
-        // addrLen = cl.addrLen;
         headers = cl.headers;
         method = cl.method;
         uri = cl.uri;

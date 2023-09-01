@@ -202,11 +202,11 @@ bool Request::parseRequest(Client &client, std::string &request) {
         if ((!request.size() && client.toRead) || (!client.getMethod().compare("GET") && (request.size() || client.toRead)))
             return ft_error(400, client);
 
-        // if (headers.find("Host") != headers.end()) {
-        //     std::cout << "host " << headers["Host"] << std::endl;
-        //     if (headers["Host"] != client.getConfData().serverName[0])
-        //         client.state = REINDEX;
-        // }
+        if (headers.find("Host") != headers.end()) {
+            std::cout << "host " << headers["Host"] << std::endl;
+            if (headers["Host"] != client.getConfData().serverName[0])
+                client.reIndex = true;
+        }
 
         client.setMethod(method);
         client.setURI(uri);

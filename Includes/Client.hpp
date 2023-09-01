@@ -42,7 +42,7 @@ class Client {
         void setConfData(Data &);
         Data &getConfData();
 
-        bool header, received;
+        bool header, received, reIndex;
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
         std::string leftInChunk;

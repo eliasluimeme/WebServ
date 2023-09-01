@@ -22,9 +22,9 @@ struct Servers {
     std::string ipAdress;
     int port;
     int serverSocket;
-    Data serverData;
     struct sockaddr_in serverAddr;
     enum servState state;
+    Data serverData;
     std::vector<Client> clientSockets;
 };
 
@@ -45,6 +45,7 @@ class Server {
         void reset();
         int  findClientIndex(Servers &, int &);
         Data &getConfData();
+        void reforwarding(std::vector<Servers> &servers, int servIndex, int clIndex);
 
     private:
         Data data;

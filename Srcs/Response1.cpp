@@ -224,11 +224,13 @@ bool Response::buildResponse(Client &client, Data &serverData, std::string &file
         return rq.ft_error(404, client);
     // std::map<std::string, Data>::iterator it = serverData.locations.find(location_key);
 
-    std::cout << "Location : " << location_key << std::endl;
     std::cout << "Method : " << client.getMethod() << std::endl;
     if (client.getMethod().compare("GET") == 0) {
         GetMethod(client, serverData, location_key);
         return true;
+    }
+    if (client.getMethod().compare("POST") == 0) {
+        exit(0);
     }
     // if (file.is_open()) {
     //     std::string line;
@@ -261,7 +263,6 @@ std::string find_filename(std::string path)
 void Response::sendchunked(int clientSocket, int offset, int portionSize)
 {
     std::cout << "sending chunk" << std::endl;
-    std::cout << "L : " << loc.c_str() << std::endl;
     std::ifstream file(loc.c_str(), std::ios::binary);
     if (!file.is_open())
     {
@@ -293,6 +294,7 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
             a.seekg(0, std::ios::end);
             client.fileSize = a.tellg();
             a.seekg(0, std::ios::end); // ??
+            std::cout << "fileSize " << client.fileSize << std::endl;
             std::ostringstream responses;
             responses << "HTTP/1.1 200 OK\r\n";
             responses << "Content-Type: " << c_Type[extentions] << "\r\n";
@@ -301,22 +303,20 @@ bool Response::get_file(std::ifstream &a, Client &client, std::map<std::string, 
             send(client.getFd(), responses.str().c_str(), responses.str().size(), 0);
             client.headerSent = true;
             state = IN_PROGRESS;
-            std::cout << "Header sent\n";
+            std::cout << "Header sent" << std::endl;
         }
-        else
+        if (client.headerSent)
         {
-            std::cout << "fileSize " << client.fileSize << std::endl;
             int portionSize = 1024 * 1024;
             if (client.offset < client.fileSize)
             {
                 sendchunked(client.getFd(), client.offset, portionSize); // check and return false if an error accures
                 client.offset += portionSize;
-                std::cout << "Offset " << client.offset << std::endl;
             }
-            else
+            if (client.offset >= client.fileSize)
             {
-                std::cout << "BYEEEE\n";
                 state = SENT;
+                std::cout << "offset " << client.offset << std::endl;
                 return true;
             }
         }
@@ -393,7 +393,6 @@ bool Response::get_directory(Client &c, bool &autoin, std::vector<std::string> &
     {
         root += "/" + index.front();
         loc = root;
-        std::cout << "index file : " << root << std::endl;
         std::ifstream f(root.c_str());
         if (!f.is_open())
         {
@@ -442,7 +441,6 @@ bool Response::GetMethod(Client &client, Data &serverdata, std::string location)
             root += '/';
         autoin = data.autoIndex;
         index = data.index;
-        std::cout << "ROOt : " << data.root << std::endl;
         std::string file = client.getURI().substr(location.length(), client.getURI().length());
         loc = data.root + file;
     }
