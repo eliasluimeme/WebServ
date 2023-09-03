@@ -63,11 +63,11 @@ bool Request::setEncoding(Client &client, std::string &encoding) {
     if (client.getHeaders().find("Content-Type") != client.getHeaders().end() && client.getHeaders()["Content-Type"].find("multipart/form-data;") != std::string::npos)
         return ft_error(501, client);
 
-    if (method == "POST") {
-        if (encoding != "chunked" && encoding != "length")
-            return ft_error(400, client);
-    }
-    else if (method == "GET" && encoding.empty())
+    // if (method == "POST") {
+    //     if (encoding != "chunked" && encoding != "length")
+    //         return ft_error(400, client);
+    // }
+    else if (method == "GET" && encoding.empty() && client.header == true)
         client.state = REQUEST_RECEAVED;
 
     client.setEncoding(encoding);
@@ -202,11 +202,11 @@ bool Request::parseRequest(Client &client, std::string &request) {
         if ((!request.size() && client.toRead) || (!client.getMethod().compare("GET") && (request.size() || client.toRead)))
             return ft_error(400, client);
 
-        if (headers.find("Host") != headers.end()) {
-            std::cout << "host " << headers["Host"] << std::endl;
-            if (headers["Host"] != client.getConfData().serverName[0])
-                client.reIndex = true;
-        }
+        // if (headers.find("Host") != headers.end()) {
+        //     std::cout << "host " << headers["Host"] << std::endl;
+        //     if (headers["Host"] != client.getConfData().serverName[0])
+        //         client.reIndex = true;
+        // }
 
         client.setMethod(method);
         client.setURI(uri);
@@ -229,8 +229,11 @@ bool Request::parseRequest(Client &client, std::string &request) {
         file.write(request.c_str(), request.size());
         client.readed += request.size();
         if (client.readed >= client.toRead)
-            client.state == REQUEST_RECEAVED;
+            client.state = REQUEST_RECEAVED;
     }
+
+    std::cout << "STAATE " << client.state << std::endl;
+
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> handle when method is get and there is no content length
     if ((client.state == REQUEST_RECEAVED)) { // handle when body size > content length
         log("------     Request body received     ------\n");

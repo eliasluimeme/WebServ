@@ -28,6 +28,7 @@ std::vector<Data> setupData(confData &config) { // TODO check errors
 
 		data.cgi.push_back(config.server[i].getCgipass()); // todo get the whole pass + param 
 		data.errorPages = config.server[i].get_errorPage();
+		data.uploadPass = config.server[i].getUploadPass();
 
 		std::map<std::string, ConfigServer> loc = config.server[i].getLocation();
 		for (std::map<std::string, ConfigServer>::iterator it = loc.begin(); it != loc.end(); it++) {
@@ -36,6 +37,12 @@ std::vector<Data> setupData(confData &config) { // TODO check errors
 			locData.bodySize = it->second.getclientbodyBuffersize();
 			locData.autoIndex = it->second.getAutoindex();
 			locData.root = it->second.get_root();
+			locData.uploadPass = it->second.getUploadPass();
+
+
+			std::set<std::string> meth = it->second.getAllowedmethod();
+			for (std::set<std::string>::iterator it = meth.begin(); it != meth.end(); it++)
+				locData.methods.push_back(*it);
 
 			std::vector<std::string> ind = it->second.getIndex();
 			for (std::vector<std::string>::iterator itindex = ind.begin(); itindex != ind.end(); itindex++)
@@ -78,17 +85,3 @@ int main(int ac, char **av) {
     
     return 0;
 }
-
-// TODO FOR PARSING CONFIG
-// check IP and port (khlihom strings)
-// implement ; in config file
-// change names in config;
-    // allow_methods -> methods
-    // client_body_buffer_size -> body_size
-// to check in conf: root, bodysize, 
-
-
-// TODO FOR SERVER
-// retest for errors in headers and requested data
-// implement timeout 408 504
-// cgi

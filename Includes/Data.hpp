@@ -14,6 +14,7 @@ struct Data {
 	std::map<std::string, std::string> 		listen;
 	int 									bodySize;
 	bool 									autoIndex;
+	std::string								uploadPass;
 	std::string 							root;
 	std::vector<std::string> 				index;
 	std::vector<std::string> 				methods;

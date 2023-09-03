@@ -471,6 +471,10 @@ ConfigServer & ConfigServer::getDefaultServer()
     return ConfigServer::_defaultServer;
 }
 
+std::string ConfigServer::getUploadPass() {
+    return this->_uploadPass;
+}
+
 ConfigServer  ConfigServer::getlocationforRequest(std::string const path, std::string &locationpath)
 {
     std::string::size_type  len = path.size();

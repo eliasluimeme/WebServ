@@ -73,6 +73,7 @@ public:
     std::string getalias()const;
     bool getaliasSet()const;
     static ConfigServer &getDefaultServer();
+    std::string getUploadPass();
 
     ConfigServer    getlocationforRequest(std::string const path, std::string &locationPath);
     friend std::ostream& operator <<(std::ostream& out, const ConfigServer& server);

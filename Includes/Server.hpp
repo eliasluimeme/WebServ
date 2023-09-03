@@ -37,7 +37,7 @@ class Server {
         void closeServers();
         void acceptConnection(Servers &);
         void handleRequest(Servers &,int &);
-        void buildResponse();
+        void buildResponse(std::string &);
         void sendResponse(Servers &, int &);
         void setNonBlocking(int &);
         void exitWithError(std::string);
@@ -49,7 +49,8 @@ class Server {
 
     private:
         Data data;
-        int maxFd, servIndex;
+        int maxFd, maxFdTmp;
+        // int servIndex;
         std::vector<Servers> servers;
         std::map<int, std::map<std::string, int> > ports;
         fd_set readSet, writeSet, readSetTmp, writeSetTmp;

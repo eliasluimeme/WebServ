@@ -3,13 +3,16 @@
 Client::Client() {
     clientFd = -1;
     memset(&addr, 0, sizeof(addr));
+    encoding = "";
     received = false;
     header = false;
     toRead = 0;
     readed = 0;
     left = 0;
+    chunkSize = 0;
     startTime.tv_sec = 0;
     send_headers = false;
+    leftInChunk = "";
     responseSent = 0;
     bytesSent = 0;
     headerSent = false;
@@ -41,10 +44,25 @@ Client& Client::operator=(const Client &cl) {
 Client::~Client() {}
 
 void Client::cleanup() {
+    clientFd = -1;
+    memset(&addr, 0, sizeof(addr));
+    encoding = "";
     received = false;
     header = false;
     toRead = 0;
     readed = 0;
+    left = 0;
+    chunkSize = 0;
+    startTime.tv_sec = 0;
+    send_headers = false;
+    leftInChunk = "";
+    responseSent = 0;
+    bytesSent = 0;
+    headerSent = false;
+    state = READY;
+    offset = 0;
+    pos = 0;
+    reIndex = false;
 }
 
 void Client::setFd(int fd) { clientFd = fd; }

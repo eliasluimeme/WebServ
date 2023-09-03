@@ -36,7 +36,7 @@ Data &Server::getConfData() {
 }
 
 void Server::setNonBlocking(int &socket) {
-    if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
+    if (fcntl(socket, F_SETFL, O_NONBLOCK) < 0)
         exitWithError("Setting nonblocking on server socket failed");
 }
 
@@ -51,8 +51,8 @@ int Server::findClientIndex(Servers &server, int &clientSock) {
     return -1;
 }
 
-void Server::buildResponse() {
-    std::string responseMsg;
+void Server::buildResponse(std::string &responseMsg) {
+    // std::string responseMsg;
     std::string html = "<!DOCTYPE html><html lang=\"en\"><body><h1> HOME </h1><p> Hello from your Server :) </p></body></html>";
     std::ostringstream ss;
 
@@ -67,33 +67,38 @@ void Server::sendResponse(Servers &server, int &clientFd) {
  
     // buildImage(clientFd);
     // buildVideo(clientFd);
-    // buildResponse();
+    std::string responseMsg;
+    buildResponse(responseMsg);
     std::stringstream ss;
     ss << server.clientSockets[index].getFd();
     fileName << "request-" << ss.str();
     std::string name(fileName.str());
 
-    // size_t bytesSent;
-    // bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
-    // if (bytesSent >= responseMsg.size())
-    //     log("------ Response sent to client ------\n\n");
-    // else
-    //     exitWithError("Error sending response to client");
+    size_t bytesSent;
+    bytesSent = send(clientFd, responseMsg.c_str(), responseMsg.size(), 0);
+    if (bytesSent >= responseMsg.size()) {
+        log("------ Response sent to client ------\n\n");
+        response.state = SENT;
+        // clIndexx = 0;
+    }
+    else
+        exitWithError("Error sending response to client");
 
-    response.buildResponse(server.clientSockets[index], server.clientSockets[index].getConfData(), name);
+    // response.buildResponse(server.clientSockets[index], server.clientSockets[index].getConfData(), name);
 
     if (response.state == SENT) {
         std::cout << "cleanin..." << std::endl;
-        reset(); // TODO: clean resources
+        // reset(); // TODO: clean resources
+        std::cout << "cleaning index " << index << std::endl;
         server.clientSockets[index].cleanup();
         server.clientSockets.erase(server.clientSockets.begin() + index);
         FD_CLR(clientFd, &writeSetTmp);
         close(clientFd);
 
         // delete file after sending response
-        std::string s(fileName.str());
-        if (std::remove(s.c_str()))
-            exitWithError("Error removing file");
+        // std::string s(fileName.str());
+        // if (std::remove(s.c_str()))
+        //     exitWithError("Error removing file");
     }
 
 }
@@ -106,11 +111,13 @@ void Server::handleRequest(Servers &server, int &clientFd) {
     std::string requestMsg;
     char buff[BUFFER_SIZE] = {0};
     int index = findClientIndex(server, clientFd);
-    std::time_t time = std::time(NULL);
-    if (server.clientSockets[index].startTime.tv_sec == 0)
-        server.clientSockets[index].startTime.tv_sec = static_cast<time_t>(time);
+    // std::time_t time = std::time(NULL);
+    // if (server.clientSockets[index].startTime.tv_sec == 0)
+    //     server.clientSockets[index].startTime.tv_sec = static_cast<time_t>(time);
 
-    size_t bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
+    size_t bytesRead = 0;
+    bytesRead = read(clientFd, buff, BUFFER_SIZE); // check body limit
+    std::cout << "Bytes read " << bytesRead << std::endl;
     std::stringstream fd;
     fd << clientFd;
 
@@ -124,14 +131,20 @@ void Server::handleRequest(Servers &server, int &clientFd) {
         close(clientFd);
     } else {
         Request request;
-        struct timeval currentTime;
-        currentTime.tv_sec = static_cast<time_t>(time);
-        if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
-            request.ft_error(408, server.clientSockets[index]);
+        // struct timeval currentTime;
+        // currentTime.tv_sec = static_cast<time_t>(time);
+        // if (currentTime.tv_sec - server.clientSockets[index].startTime.tv_sec >= REQUEST_TIMEOUT)
+        //     request.ft_error(408, server.clientSockets[index]);
 
+        // std::cout << "request:\n" << buff << std::endl; 
+
+        // if (buff != NULL)
         requestMsg = std::string(buff, bytesRead);
         request.parseRequest(server.clientSockets[index], requestMsg);
+
+        std::cout << "STAAATE " << server.clientSockets[index].state << std::endl;
         if (server.clientSockets[index].state == CLEAR) {
+            std::cout << "clearing client\n";
             server.clientSockets.erase(server.clientSockets.begin() + index);
             FD_CLR(clientFd, &readSetTmp);
             close(clientFd);
@@ -151,7 +164,7 @@ void Server::acceptConnection(Servers &server) {
 
     memset(&clientAddr, 0, sizeof(clientAddr));
     unsigned int clientAddrLength = sizeof(clientAddr);
-    if (server.state != VIRTUAL) {
+    // if (server.state != VIRTUAL) {
         int clientSocket = accept(server.serverSocket, (struct sockaddr *)&clientAddr, &clientAddrLength);
         if (clientSocket < 0)
             perror("Couldn't accept connection. Accept failed");
@@ -167,7 +180,7 @@ void Server::acceptConnection(Servers &server) {
         client.setAddr(clientAddr);
         client.setConfData(server.serverData);
         server.clientSockets.push_back(client);
-    }
+    // }
 }
 
 bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
@@ -177,8 +190,6 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
     int i = 1;
     int serverNum = serversData.size();
 
-    FD_ZERO(&readSet);
-    FD_ZERO(&writeSet);
     for (int i = 0; i < serverNum; i++) {
         Servers serv;
         std::map<std::string, std::string>::iterator listenTo = serversData[i].listen.begin();
@@ -207,11 +218,16 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
         // handle the request 
         // then route the request to the appropriate server
 
+        serv.state = DEFAULT;
         for (int index = 0; index < servers.size(); index++) {
-            if (serv.port == servers[index].port) {
-                if (serv.serverData.serverName[0] != servers[index].serverData.serverName[0])
-                    serv.state = VIRTUAL;
-                else exitWithError("Invalid server configuration");
+            if (serv.ipAdress == servers[index].ipAdress) {
+                if (serv.port == servers[index].port) {
+                    if (serv.serverData.serverName[0] != servers[index].serverData.serverName[0]) {
+                        serv.state = VIRTUAL;
+                        break;
+                    }
+                    else exitWithError("Invalid server configuration");
+                } else serv.state = DEFAULT;
             } else serv.state = DEFAULT;
         }
         
@@ -221,6 +237,7 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
         serv.serverAddr.sin_addr.s_addr = inet_addr(serv.ipAdress.c_str());
 
         serv.serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        std::cout << "serv socket " << serv.serverSocket << std::endl;
         if (serv.serverSocket < 0)
             exitWithError("Couldn't create socket");
 
@@ -230,7 +247,7 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
         signal(SIGPIPE, SIG_IGN);
         if (setsockopt(serv.serverSocket, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(i)) < 0) // redo a
             exitWithError("Couldn't set REUSEADDR opt");
-        if (serv.state != VIRTUAL) {
+        if (serv.state == DEFAULT) {
             if (bind(serv.serverSocket, (struct sockaddr *)&serv.serverAddr, sizeof(serv.serverAddr)) < 0)
                 exitWithError("Couldn't bind socket. Check your port number");
 
@@ -239,7 +256,7 @@ bool Server::initServers(std::vector<Data> &serversData) { // TODO check errors
             if (listen(serv.serverSocket, MAX_CLIENTS) < 0)
                 exitWithError("Couldn't listen to socket");
 
-            FD_SET(serv.serverSocket, &readSet);
+            FD_SET(serv.serverSocket, &readSetTmp);
             maxFd = std::max(maxFd, serv.serverSocket);
         }
 
@@ -262,7 +279,7 @@ void Server::reforwarding(std::vector<Servers> &servers, int servIndex, int clIn
                 if (servers[i].serverData.serverName[0] == servers[servIndex].clientSockets[clIndex].getHeaders()["Host"]) {
                     // servers[i].clientSockets.push_back(servers[servIndex].clientSockets[clIndex]);
                     // servers[servIndex].clientSockets.erase(servers[servIndex].clientSockets.begin() + clIndex);
-                    servers[servIndex].clientSockets[clIndex].reIndex == false;
+                    servers[servIndex].clientSockets[clIndex].reIndex = false;
                     servers[servIndex].clientSockets[clIndex].setConfData(servers[i].serverData);
                     std::cout << "forwarded from server " << servIndex << " to " << i << std::endl;
                     // FD_CLR(servers[servIndex].clientSockets[clIndex].getFd(), &readSetTmp);
@@ -275,7 +292,6 @@ void Server::reforwarding(std::vector<Servers> &servers, int servIndex, int clIn
 }
 
 void Server::startServers(std::vector<Data> &serversData) {
-    initServers(serversData);
 
     // std::ofstream outputFile("output.txt");
     // // Store the current state of std::cout
@@ -283,40 +299,61 @@ void Server::startServers(std::vector<Data> &serversData) {
     // // Redirect std::cout to the file
     // std::cout.rdbuf(outputFile.rdbuf());
 
+    FD_ZERO(&readSet);
+    FD_ZERO(&writeSet);
     FD_ZERO(&readSetTmp);
     FD_ZERO(&writeSetTmp);
+    initServers(serversData);
+
     while (true) {
         int activity = 0;
-        int maxFdTmp = maxFd;
-        readSetTmp = readSet;
-        writeSetTmp = writeSet;
+        maxFdTmp = maxFd;
+        // readSetTmp = readSet;
+        // writeSetTmp = writeSet;
 
+        readSet = readSetTmp;
+        writeSet = writeSetTmp;
         log("====== Waiting for a new connection ======\n");
-        
+
+        // for(int f = 0; f <= maxFdTmp; f++) {
+        //     if (FD_ISSET(f, &readSet))
+        //         std::cout << "read fds " << f << std::endl;
+        //     if (FD_ISSET(f, &writeSet))
+        //         std::cout << "write fds " << f << std::endl;
+        // }
+        // std::cout << "max fd " << maxFdTmp << std::endl;
+
         if ((activity = select(maxFdTmp + 1, &readSet, &writeSet, NULL, NULL)) < 0)
             exitWithError("Select failed!");
 
-        for (servIndex = 0; servIndex < servers.size(); servIndex++) {
+        for (int servIndex = 0; servIndex < servers.size(); servIndex++) {
                 std::cout << "serv index: " << servIndex << std::endl;
             if (FD_ISSET(servers[servIndex].serverSocket, &readSet)) 
                 acceptConnection(servers[servIndex]);
 
-            for (int clIndex = 0; clIndex < servers[servIndex].clientSockets.size(); clIndex++) {
-                int clientFd = servers[servIndex].clientSockets[clIndex].getFd();
-                if (FD_ISSET(clientFd, &readSet))
+            for (int clIndexx = 0; clIndexx < servers[servIndex].clientSockets.size(); clIndexx++) {
+                int clientFd = servers[servIndex].clientSockets[clIndexx].getFd();
+                std::cout << "CLIENT " << servers[servIndex].clientSockets[clIndexx].getFd() << " state " << servers[servIndex].clientSockets[clIndexx].state << std::endl;
+
+                if (FD_ISSET(clientFd, &readSet)) {
                     handleRequest(servers[servIndex], clientFd);
-                if (servers[servIndex].clientSockets[clIndex].reIndex == true) {
-                    reforwarding(servers, servIndex, clIndex);
-                    // servIndex = -1;
-                    // break;
+                    // clIndexx = 0;
                 }
                 if (FD_ISSET(clientFd, &writeSet))
                     sendResponse(servers[servIndex], clientFd);
+                // if (servers[servIndex].clientSockets[clIndex].reIndex == true)
+                //     reforwarding(servers, servIndex, clIndex);
             }
         }
-
-        readSet = readSetTmp;
-        writeSet = writeSetTmp;
+        
+        for (int j = 0; j < servers.size(); j++) {
+           std::cout << "in left server index " << j << std::endl;
+           for (int c = 0; c < servers[j].clientSockets.size(); c++) {
+               std::cout << "left clients " << servers[j].clientSockets[c].getFd() << std::endl;
+               if (servers[j].clientSockets[c].state == REQUEST_RECEAVED)
+                   std::cout << "request received" << std::endl;
+           }
+        }
     }
     // Restore the original state of std::cout
     // std::cout.rdbuf(coutBuffer);
