@@ -20,6 +20,8 @@ Client::Client() {
     offset = 0;
     pos = 0;
     reIndex = false;
+    chunkedResp = false;
+    rename = false;
 }
 
 Client& Client::operator=(const Client &cl) {

@@ -17,8 +17,12 @@ class Request {
         bool isHexa(std::string &);
         void reset(Client &);
         int  findClientIndex(std::vector<Client> &, int &);
+        void checkURI();
+        void repl(std::string&, std::string, std::string);
 
-        bool ft_error(int, Client &);
+        bool ft_error(int, Client &, std::string);
+        std::map<int, std::string>error_p;
+        std::map<int, std::string>deferror;
 
     private:
         std::string method, uri, http, query, delimiter, tmp;

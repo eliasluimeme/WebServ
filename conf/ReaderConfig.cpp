@@ -48,9 +48,10 @@ bool ReaderConf::checkfile(std::string file)
     int i = 0;
     while (std::getline(iss, line))
     {
-        // std::cout <<RED<< line << std::endl;
-        if ((line.find("{") != std::string::npos) || (line.find("}") != std::string::npos) || line == "")
+        if ((line.find("{") != std::string::npos) || (line.find("}") != std::string::npos))
             i++;
+        else if (line.find_first_not_of("\n\t ") == std::string::npos)
+            continue;
         else if(line.find(';') == std::string::npos)
             return false;
     }
@@ -63,14 +64,21 @@ filevector ReaderConf::readfile(const char * filename)
 
     if (!(inputFile.is_open()))
         throw ReaderConf::FileNotfoundException();
+    if(inputFile)
+    {
+        inputFile.seekg(0, std::ios::end);
+        if (inputFile.tellg() == 0)
+        {
+            inputFile.close();
+            throw ErrorConfigFileEmpty();
+        }
+    }
+    inputFile.seekg(0, std::ios::beg);
     std::string fileContents((std::istreambuf_iterator<char>(inputFile)),
                                  (std::istreambuf_iterator<char>()));
     inputFile.close();
-
-    if (!checkfile(fileContents))
-    {
+    if (checkfile(fileContents) == false)
         throw ErrorConfigFileExce();
-    }
     
     file = ReaderConf::split(fileContents, std::string(" \n\t"));
     return file;
@@ -81,7 +89,11 @@ const char	*ReaderConf::FileNotfoundException::what() const throw()
 }
 const char * ReaderConf::ErrorConfigFileExce::what() const throw()
 {
-    return "error in Config file";
+    return "Error in Config file";
 }
 
+const char * ReaderConf::ErrorConfigFileEmpty::what() const throw()
+{
+    return "Empty file";
+}
     

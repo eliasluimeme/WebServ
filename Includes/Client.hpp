@@ -46,6 +46,7 @@ class Client {
         int toRead, readed, chunkSize, left;
         std::string encoding, delimiter;
         std::string leftInChunk;
+        std::string cgiLocation;
         struct timeval startTime, reqTimeout, cgiTimeout;
         enum clientState state;
 
@@ -55,7 +56,7 @@ class Client {
         void setSend(bool );
         bool &getSend();
 
-        bool responseSent, headerSent;
+        bool responseSent, headerSent, chunkedResp, rename;
         int bytesSent, offset, fileSize;
 
 

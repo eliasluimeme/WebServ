@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Form</title>
+</head>
+<body>
+    <h2>File Upload</h2>
+    <form>
+        <label for="file">Choose a file to upload:</label>
+        <input type="file" id="file" required><br>
+        <input type="button" value="Upload File" onclick="uploadFile()">
+    </form>
+    <div id="progress"></div>
+    <div id="result"></div>
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append('file', file);
+
+            xhr.open('POST', '/cgi-bin/upload2.php', true);
+
+            xhr.upload.addEventListener('progress', function (event) {
+                if (event.lengthComputable) {
+                    const percent = (event.loaded / event.total) * 100;
+                    document.getElementById('progress').innerText = `Uploading: ${percent.toFixed(2)}%`;
+                }
+            });
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        document.getElementById('result').innerText = xhr.responseText;
+                    } else {
+                        document.getElementById('result').innerText = 'Error uploading file.';
+                    }
+                }
+            };
+
+            xhr.send(formData);
+        }
+    </script>
+</body>
+</html>

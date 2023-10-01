@@ -27,11 +27,10 @@
 #include <limits>
 
 #include "../Includes/Data.hpp"
-#include "../Includes/Parser.hpp"
 #include "../Includes/Server.hpp"
 #include "../Includes/Client.hpp"
 #include "../Includes/Request.hpp"
-#include "../Includes/Response1.hpp"
+#include "../Includes/Response.hpp"
 #include "../Includes/CGI.hpp"
 
 #include "../conf/config.hpp"

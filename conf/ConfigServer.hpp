@@ -20,7 +20,9 @@ private:
     void    addAlias(std::vector<std::string> args);
     void    addAutoindex(std::vector<std::string> args);
     void    addUpload(std::vector<std::string> args);
+    void    addCgi(std::vector<std::string> args);
 
+    bool directoryExists(const char* path);
     std::vector<t_listen>				_listen;
 	std::string							_root;
 
@@ -37,6 +39,7 @@ private:
 	std::string     					_alias;
 	bool								_aliasSet;
     std::string                         _uploadPass;
+    std::set<std::string>               _cgi;
 	static  ConfigServer				_defaultServer;
 	static  parseMap					serverParsingMap;
 	static  parseMap					locationParsingMap;
@@ -57,6 +60,13 @@ public:
             return "invalide argument exception in configuration file"; 
         }
     };
+    class directoryNotFound : public std::exception
+    {
+        virtual const char *what() const throw()
+        {
+            return "directory not found"; 
+        }
+    };
     static ConfigServer _initserverDefault(const char* filename);
     //getters 
     std::vector<t_listen> get_listen() const;
@@ -72,8 +82,10 @@ public:
     bool getAutoindex()const;
     std::string getalias()const;
     bool getaliasSet()const;
+    std::string get_Upload_pass()const;
     static ConfigServer &getDefaultServer();
-    std::string getUploadPass();
+    std::set<std::string> getCgi() const;
+    
 
     ConfigServer    getlocationforRequest(std::string const path, std::string &locationPath);
     friend std::ostream& operator <<(std::ostream& out, const ConfigServer& server);

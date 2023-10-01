@@ -24,22 +24,6 @@ std::vector<ConfigServer> Config::getServer() const
     return this->_server;
 }
 
-// bool Config::checkfile(filevector file)
-// {
-//     size_t comma;
-//     for ( filevector::iterator i = file.begin() ;i < file.end(); i++)
-//     {
-//         if (i->data() == "server" || i->data() == "{")
-//         {
-            
-//         }
-        
-//         if (comma = i->find(";") == std::string::npos)
-//             return false;
-//     }
-//     return true;
-// }
-
 int Config::parse(const char *filename, confData &data)
 {
     filevector file;
@@ -72,26 +56,10 @@ int Config::parse(const char *filename, confData &data)
             return 1;
         }   
     }
-    // std::cout << this->_server[0] << '\n';  
     data.server = this->_server;
 
     return 0;
 }
-
-// RequestConfiga Config::getConfigForRequest(t_listen const adress,std::string const uri, std::string hostname, const std::string &method, Request &request) const
-//     {
-//         ConfigServer server;
-//         std::string locationPath;
-
-//         hostname = hostname.substr(0, hostname.find_last_of(':'));
-//         this->getServerforRequest(server, adress, hostname);
-//         server = server.getlocationforRequest(uri, locationPath);
-//         if (*(--locationPath.end()) == '/')
-//             locationPath.resize(locationPath.size() - 1);
-//         RequestConfiga config(server, request, uri, method, locationPath);
-//         config.setHostPort(adress);
-//         return config;
-//     }
 
 bool Config::getServerforRequest(ConfigServer &ret, t_listen const address, std::string const hostName) const 
 {
